@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/public-sans";
+
+@theme {
+  --font-sans: "Public Sans Variable", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", Georgia, sans-serif;
+
+  --color-ink: #13201a;
+  --color-muted: #56635c;
+  --color-paper: #f5f6f2;
+  --color-line: #dfe4dc;
+  --color-brand-50: #e4f1ea;
+  --color-brand-100: #cfe3d7;
+  --color-brand-600: #146b47;
+  --color-brand-700: #0f5a3b;
+  --color-brand-800: #0b3f2a;
+  --color-brand-900: #0b2a1d;
+  --color-flame-50: #fbe7e4;
+  --color-flame-600: #c8372d;
+  --color-flame-800: #8e241c;
+  --color-sun-50: #fff1d6;
+  --color-sun-800: #6b4200;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-paper font-sans text-ink antialiased; }
+  h1, h2, h3, h4 { @apply font-display tracking-tight text-[#0e1a14]; }
+  :focus-visible { outline: 3px solid #9fd8b8; outline-offset: 2px; }
+}

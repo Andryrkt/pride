@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pride
+          POSTGRES_PASSWORD: pride
+          POSTGRES_DB: pride
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pride" --health-interval 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://pride:pride@localhost:5432/pride
+      BETTER_AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      PAYMENTS_MODE: simulation
+      UPLOAD_DIR: /tmp/pride-uploads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Règles des statuts (tests unitaires)
+        run: pnpm --filter @pride/shared test
+      - name: Vérification des types
+        run: pnpm -r typecheck
+      - name: Base de données
+        run: pnpm db:deploy && pnpm db:seed
+      - name: Construction du site
+        run: pnpm --filter @pride/web build
+      - name: Parcours de bout en bout
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          (cd apps/web && pnpm start &) && sleep 8
+          pnpm test:e2e

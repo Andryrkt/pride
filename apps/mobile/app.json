@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "PRIDe",
+    "slug": "pride",
+    "scheme": "pride",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": { "image": "./assets/icon.png", "resizeMode": "contain", "backgroundColor": "#f5f6f2" },
+    "ios": { "bundleIdentifier": "mg.pride.membres", "supportsTablet": false },
+    "android": {
+      "package": "mg.pride.membres",
+      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#f5f6f2" }
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": { "typedRoutes": false },
+    "extra": { "apiUrl": "http://localhost:3000" }
+  }
+}

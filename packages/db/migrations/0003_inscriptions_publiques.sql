@@ -1,0 +1,2 @@
+-- Inscription publique aux événements : un même numéro ne s'inscrit qu'une fois par événement.
+CREATE UNIQUE INDEX "event_registrations_phone_uq" ON "event_registrations" USING btree ("post_id","phone");

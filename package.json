@@ -1,0 +1,40 @@
+{
+  "name": "pride",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "turbo run dev --filter=@pride/web",
+    "dev:mobile": "pnpm --filter @pride/mobile start",
+    "build": "turbo run build --filter=@pride/web",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @pride/db generate",
+    "db:migrate": "pnpm --filter @pride/db migrate:dev",
+    "db:deploy": "pnpm --filter @pride/db migrate:deploy",
+    "db:seed": "pnpm --filter @pride/db seed",
+    "db:studio": "pnpm --filter @pride/db studio",
+    "test:e2e": "node tests/parcours.e2e.mjs"
+  },
+  "devDependencies": {
+    "turbo": "2.5.8",
+    "typescript": "5.8.3",
+    "playwright": "1.56.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp"
+    ],
+    "overrides": {
+      "@react-navigation/native": "7.1.17",
+      "@react-navigation/core": "7.12.4",
+      "@react-navigation/bottom-tabs": "7.4.7",
+      "@react-navigation/native-stack": "7.3.26",
+      "@react-navigation/elements": "2.6.4",
+      "@react-navigation/routers": "7.5.1"
+    }
+  }
+}
