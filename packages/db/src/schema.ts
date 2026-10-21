@@ -441,6 +441,38 @@ export const contactMessages = pgTable("contact_messages", {
   createdAt: createdAt(),
 });
 
+/** Aide de solidarité (RI art. 6) : 50 000 Ar au membre, 25 000 Ar à sa famille proche. */
+export const solidarityKind = pgEnum("solidarity_kind", ["MARIAGE", "NAISSANCE", "MALADIE", "DECES"]);
+export const solidarityConcerns = pgEnum("solidarity_concerns", ["MEMBRE", "FAMILLE"]);
+export const solidarityStatus = pgEnum("solidarity_status", ["DEMANDEE", "ACCORDEE", "REFUSEE"]);
+
+export const solidarityRequests = pgTable(
+  "solidarity_requests",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+    kind: solidarityKind("kind").notNull(),
+    concerns: solidarityConcerns("concerns").notNull(),
+    eventDate: date("event_date", { mode: "date" }).notNull(),
+    message: text("message"),
+    /** Pièce jointe facultative (certificat, faire-part…), visible des dirigeants seulement. */
+    attachmentKey: text("attachment_key"),
+    attachmentName: text("attachment_name"),
+    attachmentType: text("attachment_type"),
+    /** Montant fixé à la demande selon le bénéficiaire. */
+    amount: integer("amount").notNull(),
+    status: solidarityStatus("status").notNull().default("DEMANDEE"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decidedBy: text("decided_by"),
+    decisionNote: text("decision_note"),
+    createdAt: createdAt(),
+  },
+  // Une même déclaration envoyée deux fois ne crée qu'une demande.
+  (t) => [uniqueIndex("solidarity_requests_uq").on(t.memberId, t.kind, t.concerns, t.eventDate), index("solidarity_requests_status_idx").on(t.status)],
+);
+
 export const auditLogs = pgTable("audit_logs", {
   id: id(),
   actorId: text("actor_id"),
@@ -530,6 +562,10 @@ export const assembliesRelations = relations(assemblies, ({ one, many }) => ({
 export const assemblyAttendancesRelations = relations(assemblyAttendances, ({ one }) => ({
   assembly: one(assemblies, { fields: [assemblyAttendances.assemblyId], references: [assemblies.id] }),
   member: one(members, { fields: [assemblyAttendances.memberId], references: [members.id] }),
+}));
+
+export const solidarityRequestsRelations = relations(solidarityRequests, ({ one }) => ({
+  member: one(members, { fields: [solidarityRequests.memberId], references: [members.id] }),
 }));
 
 export const resolutionsRelations = relations(resolutions, ({ one }) => ({

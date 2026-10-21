@@ -14,6 +14,13 @@ export type MemberCategory = keyof typeof TARIFS;
 /** Règlement intérieur, art. 6 : aide versée lors d'un événement heureux ou douloureux. */
 export const AIDE_SOLIDARITE = { membre: 50_000, famille: 25_000 } as const;
 
+/** Événements ouvrant droit à l'aide de solidarité (heureux ou douloureux). */
+export const SOLIDARITE_EVENEMENTS = { MARIAGE: "Mariage", NAISSANCE: "Naissance", MALADIE: "Maladie ou hospitalisation", DECES: "Décès" } as const;
+export type SolidariteEvenement = keyof typeof SOLIDARITE_EVENEMENTS;
+/** Bénéficiaire : le membre lui-même, ou sa famille proche. */
+export const SOLIDARITE_CONCERNE = { MEMBRE: "Moi-même", FAMILLE: "Parent, frère ou sœur" } as const;
+export type SolidariteConcerne = keyof typeof SOLIDARITE_CONCERNE;
+
 /** Règlement intérieur, art. 8 bis : part des cotisations laissée à une section régionale. */
 export const PART_SECTION = 0.9;
 

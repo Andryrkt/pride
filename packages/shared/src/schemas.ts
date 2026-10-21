@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PAYMENT_PROVIDERS } from "./constants";
+import { PAYMENT_PROVIDERS, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "./constants";
 
 const phone = z
   .string({ required_error: "Téléphone : champ obligatoire" })
@@ -60,6 +60,16 @@ export type ContactInput = z.infer<typeof contactSchema>;
 export const eventRegistrationSchema = z.object({
   name: required("Nom et prénom").max(120),
   phone,
+});
+
+const keys = <T extends object>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]];
+
+/** Déclaration d'un événement heureux ou douloureux (aide de solidarité). */
+export const solidarityRequestSchema = z.object({
+  kind: z.enum(keys(SOLIDARITE_EVENEMENTS), { errorMap: () => ({ message: "Type d'événement : champ obligatoire" }) }),
+  concerns: z.enum(keys(SOLIDARITE_CONCERNE), { errorMap: () => ({ message: "Concerne : champ obligatoire" }) }),
+  eventDate: z.coerce.date({ errorMap: () => ({ message: "Date : champ obligatoire" }) }),
+  message: z.string().trim().max(1000).optional(),
 });
 
 /** Délibération du conseil d'administration sur une candidature. */

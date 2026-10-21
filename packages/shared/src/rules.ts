@@ -1,4 +1,4 @@
-import { AG_CATEGORIES_VOTANTES, AG_DELAI_CONVOCATION_JOURS, PART_SECTION, TARIFS, type Majorite, type MemberCategory } from "./constants";
+import { AIDE_SOLIDARITE, AG_CATEGORIES_VOTANTES, AG_DELAI_CONVOCATION_JOURS, PART_SECTION, TARIFS, type Majorite, type SolidariteConcerne, type MemberCategory } from "./constants";
 
 /** Format « 10 000 Ar ». */
 export function formatAriary(amount: number): string {
@@ -122,6 +122,11 @@ export function mandateActive(m: { startsAt: Date | string; endsAt: Date | strin
   const start = new Date(m.startsAt).toISOString().slice(0, 10);
   const end = m.endsAt ? new Date(m.endsAt).toISOString().slice(0, 10) : null;
   return start <= day && (end === null || end >= day);
+}
+
+/** Montant de l'aide de solidarité : 50 000 Ar pour le membre, 25 000 Ar pour sa famille proche. */
+export function solidarityAmount(concerne: SolidariteConcerne): number {
+  return concerne === "MEMBRE" ? AIDE_SOLIDARITE.membre : AIDE_SOLIDARITE.famille;
 }
 
 /** Numéro malgache sous une forme unique : « +261 34 12 345 67 » → « 0341234567 ». */

@@ -5,7 +5,8 @@ import { db, schema } from "@pride/db";
 import { agrementSchema } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
-import { audit, canDecideApplications, canManageCommissions, requireDirigeant } from "@/lib/session";
+import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
+import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
 import { slugify, type FormState } from "@/lib/utils";
 
 async function guard() {
@@ -152,4 +153,21 @@ export async function removeCommissionMemberAction(commissionId: string, memberI
   } catch (e) { return fail(e); }
   revalidatePath(`/dirigeants/commissions/${slug}`);
   redirect(`/dirigeants/commissions/${slug}?ok=${encodeURIComponent("Membre retiré de la commission.")}`);
+}
+
+// ---------------------------------------------------------------------------
+// Aide de solidarité (RI art. 6)
+// ---------------------------------------------------------------------------
+
+export async function decideSolidarityAction(id: string, decision: "ACCORDEE" | "REFUSEE", _p: FormState, f: FormData): Promise<FormState> {
+  const note = String(f.get("note") ?? "").trim();
+  if (decision === "REFUSEE" && !note) return { ok: false, message: "Indiquez le motif du refus : il est envoyé au membre.", errors: { note: "Motif : obligatoire pour un refus" } };
+  try {
+    const v = await requireDirigeant();
+    if (!canHandleSolidarity(v)) throw new SolidarityError("Action réservée au conseil d'administration et au bureau exécutif.");
+    const r = await decideSolidarity(id, decision, note, v.member.id);
+    await audit(v.member.id, decision === "ACCORDEE" ? "solidarite.accord" : "solidarite.refus", id, { memberId: r.memberId, amount: r.amount, note });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants/solidarite");
+  redirect(`/dirigeants/solidarite?ok=${encodeURIComponent(decision === "ACCORDEE" ? "Aide accordée : le membre est prévenu par e-mail." : "Demande refusée : le membre est prévenu par e-mail.")}`);
 }

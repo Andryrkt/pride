@@ -30,3 +30,7 @@ export type FormState = {
 };
 
 export const initialFormState: FormState = { ok: false };
+
+/** Une actualité est « nouvelle » pendant 7 jours après sa publication. */
+// shortcut: pas de suivi « lu / non lu » par membre ; ajouter une table de lecture si les membres le demandent.
+export const newPostsSince = () => new Date(Date.now() - 7 * 86_400_000);

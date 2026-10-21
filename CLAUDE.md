@@ -36,6 +36,7 @@ pnpm -r typecheck && pnpm --filter @pride/shared test
 pnpm test:e2e                                        # site lancé, base fraîche + démo
 node tests/commissions.e2e.mjs                       # site lancé, base avec démo (peut être relancé)
 node tests/inscriptions.e2e.mjs                      # « Je participe » : site lancé, base avec démo (peut être relancé)
+node tests/solidarite.e2e.mjs                        # aide de solidarité : site lancé, base avec démo (peut être relancé)
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
 DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=react-server tests/paiements.check.mts
 # BASE_URL=http://localhost:3001 pour un autre port ; CHROMIUM_PATH=… pour un Chromium déjà installé
@@ -55,6 +56,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
 - **Fait (phase 3)** :
   - commissions : responsables désignés pour 1 an par le CA, le Coordonnateur ou l'administrateur ; remplacement (le mandat précédent se termine la veille, ou est annulé s'il commençait le même jour), fin anticipée, composition des équipes, responsables affichés sur la page publique. Test : `node tests/commissions.e2e.mjs`.
   - inscription publique aux événements (« Je participe » : nom + téléphone, un numéro par événement, liste des inscrits dans Dirigeants › Actualités). Les événements « membres » restent absents de l'agenda public (choix validé). Test : `node tests/inscriptions.e2e.mjs`.
+  - aide de solidarité : déclaration par le membre (tableau de bord), avec pièce jointe facultative (PDF ou image, jointe à l'e-mail et visible des dirigeants), e-mail à l'association, au Trésorier et au responsable de la Commission sociale, décision dans Dirigeants › Solidarité (CA, bureau, administrateur ; refus motivé), suivi par le membre. Une aide accordée reste « à verser » : le versement attend le visa des dépenses. Test : `node tests/solidarite.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;

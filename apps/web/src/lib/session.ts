@@ -64,6 +64,11 @@ export function canManageAssemblies(v: NonNullable<Viewer>) {
   return v.isCA || v.isAdmin || v.roles.includes("SECRETAIRE_GENERALE");
 }
 
+/** Décision sur les aides de solidarité : CA, bureau exécutif (dont le Trésorier), administrateur. */
+export function canHandleSolidarity(v: NonNullable<Viewer>) {
+  return v.isCA || v.isBureau || v.isAdmin;
+}
+
 export async function audit(actorId: string | null, action: string, target?: string, details?: unknown) {
   await db.insert(schema.auditLogs).values({ actorId, action, target, details: details as object | undefined });
 }

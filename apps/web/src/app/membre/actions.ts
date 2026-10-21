@@ -2,9 +2,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, db, eq, schema } from "@pride/db";
-import { paymentRequestSchema, profileSchema } from "@pride/shared";
+import { paymentRequestSchema, profileSchema, solidarityRequestSchema } from "@pride/shared";
 import { PaymentError, payDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
+import { validateFile } from "@/lib/applications";
+import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
 import type { FormState } from "@/lib/utils";
 
 export async function payAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -54,4 +56,25 @@ export async function toggleRegistration(postId: string) {
   if (existing) await db.delete(schema.eventRegistrations).where(eq(schema.eventRegistrations.id, existing.id));
   else await db.insert(schema.eventRegistrations).values({ postId, memberId: v.member.id });
   revalidatePath("/membre/actualites");
+}
+
+export async function declareSolidarityAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  const data = Object.fromEntries(["kind", "concerns", "eventDate", "message"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const parsed = solidarityRequestSchema.safeParse({ ...data, eventDate: data.eventDate || undefined });
+  const errors: Record<string, string> = {};
+  if (!parsed.success) for (const i of parsed.error.issues) errors[String(i.path[0])] ??= i.message;
+  const file = formData.get("attachment");
+  const hasFile = file instanceof File && file.size > 0;
+  const fileProblem = hasFile ? validateFile(file) : null;
+  if (fileProblem) errors.attachment = fileProblem;
+  if (!parsed.success || fileProblem) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
+  try {
+    await declareSolidarity(v.member, parsed.data, hasFile ? file : undefined);
+  } catch (e) {
+    if (e instanceof SolidarityError) return { ok: false, message: e.message, data };
+    throw e;
+  }
+  revalidatePath("/membre");
+  return { ok: true, message: "Demande transmise au Trésorier et à la Commission sociale. Vous serez contacté(e) rapidement." };
 }

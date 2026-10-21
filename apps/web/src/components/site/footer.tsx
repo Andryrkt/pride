@@ -6,7 +6,7 @@ export function SiteFooter() {
     <footer className="bg-brand-900 text-brand-100">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 pt-14 pb-8 sm:px-6 md:grid-cols-3">
         <div className="flex flex-col gap-3">
-          <Image src="/images/logo-blanc.png" alt="PRIDe" width={63} height={90} className="h-20 w-auto" />
+          <Image src="/images/logo-blanc.png" alt="PRIDe" width={63} height={90} className="h-22.5 w-auto self-start" />
           <p className="text-sm">
             Partage Responsabilité Intégrité pour le Développement. Association apolitique et non confessionnelle, régie par l'Ordonnance 60-133 du 3 octobre 1960.
           </p>
