@@ -43,6 +43,13 @@
       "when": 1792569476202,
       "tag": "0005_solidarite_piece_jointe",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792578130806,
+      "tag": "0006_photo_membre",
+      "breakpoints": true
     }
   ]
 }

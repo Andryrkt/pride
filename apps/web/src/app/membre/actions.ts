@@ -2,11 +2,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, db, eq, schema } from "@pride/db";
-import { paymentRequestSchema, profileSchema, solidarityRequestSchema } from "@pride/shared";
+import { MAX_UPLOAD_BYTES, paymentRequestSchema, profileSchema, solidarityRequestSchema } from "@pride/shared";
 import { PaymentError, payDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { validateFile } from "@/lib/applications";
 import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
+import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import type { FormState } from "@/lib/utils";
 
 export async function payAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -77,4 +78,23 @@ export async function declareSolidarityAction(_prev: FormState, formData: FormDa
   }
   revalidatePath("/membre");
   return { ok: true, message: "Demande transmise au Trésorier et à la Commission sociale. Vous serez contacté(e) rapidement." };
+}
+
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+/** Photo d'identité de la carte de membre, ajoutée ou changée par le membre depuis son profil. */
+export async function updatePhoto(_prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Choisissez une photo.", errors: { photo: "Photo : champ obligatoire" } };
+  if (!PHOTO_TYPES.includes(file.type)) return { ok: false, message: "Format accepté : JPG, PNG ou WEBP.", errors: { photo: "Format accepté : JPG, PNG ou WEBP" } };
+  if (file.size > MAX_UPLOAD_BYTES) return { ok: false, message: "Photo trop lourde (5 Mo maximum).", errors: { photo: "Photo trop lourde (5 Mo maximum)" } };
+  try {
+    await setMemberPhoto(v.member.id, file);
+  } catch (e) {
+    if (e instanceof PhotoError) return { ok: false, message: e.message, errors: { photo: e.message } };
+    throw e;
+  }
+  revalidatePath("/membre", "layout");
+  return { ok: true, message: "Photo enregistrée. Elle apparaît sur votre carte de membre." };
 }

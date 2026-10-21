@@ -122,6 +122,8 @@ export const members = pgTable(
     parentId: text("parent_id"),
     sponsorId: text("sponsor_id"),
     sectionId: text("section_id").references(() => sections.id),
+    /** Photo d'identité de la carte (JPEG 600 × 800, sans métadonnées). */
+    photoKey: text("photo_key"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

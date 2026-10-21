@@ -1,15 +1,17 @@
 import Image from "next/image";
+import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { asc, desc, db, eq, gte, and, inArray, schema } from "@pride/db";
 import { formatAriary, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonVariants } from "@/components/ui/button";
 import { Badge, Card, Eyebrow } from "@/components/ui/card";
 import { KIND_LABELS } from "@/lib/assemblies";
+import { cardQrSvg } from "@/lib/card";
 import { dueLabel, ensureDues, listDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { SOLIDARITY_STATUS } from "@/lib/solidarity";
-import { formatDate, formatDateTime, newPostsSince } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, newPostsSince } from "@/lib/utils";
 import { SolidarityCard } from "./solidarity-card";
 
 const monthYear = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
@@ -36,6 +38,7 @@ export default async function MemberDashboard() {
   const total = unpaid.reduce((s, d) => s + d.amount, 0);
   const category = TARIFS[member.category as MemberCategory].label;
   const isNew = (d: Date) => d >= newPostsSince();
+  const qr = await cardQrSvg(member.id);
 
   return (
     <>
@@ -44,16 +47,42 @@ export default async function MemberDashboard() {
         sub={[`${category} depuis ${monthYear.format(new Date(member.joinedAt))}`, member.address].filter(Boolean).join(" · ")}
       />
       <div className="flex flex-wrap gap-5">
-        <div className="flex flex-[1_1_340px] flex-col justify-between gap-5 rounded-[20px] bg-brand-800 p-6 text-brand-100">
-          <div className="flex items-center justify-between gap-3">
-            <Image src="/images/logo-blanc.png" alt="PRIDe" width={34} height={48} className="h-12 w-auto" />
-            <span className="text-[11px] font-bold tracking-[0.14em]">CARTE DE MEMBRE</span>
+        <div className="flex w-full flex-col items-center gap-3 sm:w-75 sm:shrink-0">
+          {/* Carte verticale, aux proportions de la carte imprimée (54 × 85,6 mm) */}
+          <div className="flex aspect-[54/85.6] w-full flex-col items-center justify-between gap-3 rounded-[20px] bg-brand-800 p-5 text-center text-brand-100">
+            <div className="flex w-full items-start justify-between gap-3">
+              <Image src="/images/logo-blanc.png" alt="PRIDe" width={34} height={48} className="h-12 w-auto" />
+              <span className="text-right text-[11px] leading-snug font-bold tracking-[0.14em]">CARTE<br />DE MEMBRE</span>
+            </div>
+            {member.photoKey ? (
+              // eslint-disable-next-line @next/next/no-img-element -- photo servie par l'API, non optimisable par next/image
+              <img src={`/api/photo/${member.id}?v=${encodeURIComponent(member.photoKey)}`} alt="Ma photo" className="h-40 w-30 rounded-lg border-[3px] border-white object-cover" />
+            ) : (
+              <Link href="/membre/profil" className="flex h-40 w-30 flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-brand-100/60 text-[13px] leading-tight hover:border-white hover:text-white">
+                <UserRound size={30} aria-hidden />
+                Ajouter ma photo
+              </Link>
+            )}
+            <div className="flex flex-col gap-0.5">
+              <span className="font-display text-xl leading-tight font-extrabold text-white">{member.lastName}</span>
+              <span className="font-display text-[17px] leading-tight font-bold text-white">{member.firstNames}</span>
+              <span className="mt-1 text-[13px]">N° {member.number} · {category}</span>
+              <span className="text-[13px]">{lastPaid ? `Cotisations à jour jusqu'à ${periodLabel(lastPaid.period)}` : "Aucune cotisation réglée"}</span>
+            </div>
+            {/* SVG produit par la bibliothèque qrcode à partir d'une adresse du site : aucun texte saisi par un utilisateur. */}
+            <div role="img" aria-label="Code QR de vérification de la carte" className="size-21 shrink-0 overflow-hidden rounded-[10px] bg-white [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: qr }} />
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="font-display text-[22px] font-extrabold text-white">{member.lastName} {member.firstNames}</span>
-            <span className="text-sm">N° {member.number} · {category}</span>
-            <span className="text-sm">{lastPaid ? `Cotisations à jour jusqu'à ${periodLabel(lastPaid.period)}` : "Aucune cotisation réglée"}</span>
-          </div>
+          {member.status === "ACTIF" &&
+            (member.photoKey ? (
+              // Simple lien (pas next/link) : c'est un fichier à télécharger, pas une page.
+              <a href="/api/carte" download className={cn(buttonVariants(), "w-full")}>
+                Télécharger ma carte
+              </a>
+            ) : (
+              <p className="text-center text-sm text-muted">
+                Pour télécharger votre carte, <Link href="/membre/profil" className="font-semibold text-brand-600 underline">ajoutez d'abord votre photo</Link>.
+              </p>
+            ))}
         </div>
 
         <div className="grid flex-[1_1_340px] gap-3.5">
