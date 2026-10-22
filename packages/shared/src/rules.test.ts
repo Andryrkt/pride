@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
+import { assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
 import { applicationSchema } from "./schemas";
 
 describe("règles des statuts", () => {
@@ -98,5 +98,16 @@ describe("candidature", () => {
   it("aide de solidarité : 50 000 Ar au membre, 25 000 Ar à la famille", () => {
     expect(solidarityAmount("MEMBRE")).toBe(50_000);
     expect(solidarityAmount("FAMILLE")).toBe(25_000);
+  });
+  it("assistant : sujet de la question par mots-clés", () => {
+    expect(assistantIntent("Combien je dois payer pour ma cotisation ?")).toBe("COTISATION");
+    expect(assistantIntent("Prochaines formations")).toBe("FORMATION");
+    expect(assistantIntent("Naissance de ma fille")).toBe("SOLIDARITE");
+    expect(assistantIntent("Quand a lieu l'AG ?")).toBe("AG");
+    expect(assistantIntent("ASSEMBLÉE GÉNÉRALE")).toBe("AG");
+    expect(assistantIntent("Ma carte de membre")).toBe("CARTE");
+    expect(assistantIntent("Je veux parler au trésorier de ma cotisation")).toBe("RESPONSABLE");
+    expect(assistantIntent("Merci beaucoup")).toBe("MERCI");
+    expect(assistantIntent("Bonjour")).toBe("INCONNU");
   });
 });

@@ -39,6 +39,7 @@ node tests/inscriptions.e2e.mjs                      # « Je participe » : site
 node tests/solidarite.e2e.mjs                        # aide de solidarité : site lancé, base avec démo (peut être relancé)
 node tests/carte.e2e.mjs                             # carte de membre (QR + PDF) : site lancé, base avec démo
 node tests/reseau.e2e.mjs                            # formations, offres, compétences, commissions : site lancé, base avec démo
+node tests/messagerie.e2e.mjs                        # messagerie (assistant + responsables) : site lancé, base avec démo
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
 DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=react-server tests/paiements.check.mts
 # BASE_URL=http://localhost:3001 pour un autre port ; CHROMIUM_PATH=… pour un Chromium déjà installé
@@ -67,13 +68,13 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
     - « Rejoindre » une commission = **demande** acceptée ou refusée sur la page de la commission (CA, Coordonnateur, administrateur) ;
     - propositions d'atelier et idées de projet : e-mail à l'association et au responsable de la Commission formation et projets, gardées dans `contact_messages` ;
     - bloc « Offres récentes » et « Prochaine formation » sur le tableau de bord. Test : `node tests/reseau.e2e.mjs`.
+  - messagerie des membres (`apps/web/src/lib/messaging.ts`) : « Assistant PRIDe » par mots-clés (`assistantIntent` dans `rules.ts`, testé) qui répond avec les données du membre (cotisations dues, prochaine formation, AG convoquée, carte) ; « Parler à un responsable » transmet la dernière question au Trésorier, au Secrétariat général, au Coordonnateur ou à la Commission sociale ; réponses dans Dirigeants › Messagerie (tous les dirigeants, signées de leur nom) ; pièces jointes ; e-mails dans les deux sens ; pastilles « non lu ». Les échanges avec l'assistant ne sont pas visibles des dirigeants. Pas de temps réel : la page se met à jour à l'envoi ou au rechargement. Test : `node tests/messagerie.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;
   - envoi groupé SMS / e-mail ;
   - visa des dépenses (signature du Trésorier + visa du CA) ;
   - délégation au Coordonnateur (art. 17) ;
-  - assistant de messagerie membres (chatbot par mots-clés avec passage à un responsable) ;
   - rappels de cotisation (pg-boss) ;
   - PDF des reçus ;
   - connexion par téléphone et code SMS ;

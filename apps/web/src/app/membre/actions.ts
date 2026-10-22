@@ -2,12 +2,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, count, db, eq, schema } from "@pride/db";
-import { MAX_UPLOAD_BYTES, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
+import { MAX_UPLOAD_BYTES, MESSAGE_RECIPIENTS, type MessageRecipient, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
 import { PaymentError, payDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { validateFile } from "@/lib/applications";
 import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
 import { askHelp, closeOffer, expressInterest, NetworkError, proposeOffer, requestCommission, sendProposal } from "@/lib/network";
+import { handOff, HUMAN_RECIPIENTS, MENU_CHIPS, MessagingError, postMemberMessage } from "@/lib/messaging";
 import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import type { FormState } from "@/lib/utils";
 
@@ -173,4 +174,44 @@ export async function proposalAction(kind: "ATELIER" | "PROJET", _prev: FormStat
     kind === "ATELIER" ? "Merci ! Proposition transmise à la Commission formation et projets." : "Idée transmise à la Commission formation et projets, puis au conseil d'administration pour validation.",
     [],
   );
+}
+
+// ---------------------------------------------------------------------------
+// Messagerie
+// ---------------------------------------------------------------------------
+
+const isRecipient = (r: string): r is MessageRecipient => r in MESSAGE_RECIPIENTS;
+
+/** Message écrit (avec pièce jointe facultative) ou bouton de réponse rapide de l'assistant. */
+export async function sendMessageAction(recipient: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  if (!isRecipient(recipient)) return { ok: false, message: "Destinataire inconnu." };
+  const body = String(formData.get("body") ?? "").trim().slice(0, 4000);
+  const file = formData.get("attachment");
+  const hasFile = file instanceof File && file.size > 0;
+  if (!body && !hasFile) return { ok: false, message: "Écrivez un message." };
+  try {
+    await postMemberMessage(v.member, recipient, body || "Pièce jointe", hasFile ? file : undefined);
+  } catch (e) {
+    if (e instanceof MessagingError) return { ok: false, message: e.message };
+    throw e;
+  }
+  revalidatePath("/membre", "layout");
+  return { ok: true };
+}
+
+/** Bouton de réponse rapide de l'assistant (« Ma cotisation »…). */
+export async function quickReplyAction(question: string) {
+  const v = await requireMember();
+  if (!MENU_CHIPS.includes(question)) return;
+  await postMemberMessage(v.member, "ASSISTANT", question);
+  revalidatePath("/membre", "layout");
+}
+
+export async function handOffAction(recipient: string) {
+  const v = await requireMember();
+  const target = HUMAN_RECIPIENTS.find((r) => r === recipient);
+  if (!target) return;
+  await handOff(v.member, target);
+  revalidatePath("/membre", "layout");
 }

@@ -16,7 +16,7 @@ export function SolidarityCard({ requests }: { requests: SolidarityItem[] }) {
   const [opened, setOpened] = useState(0);
 
   return (
-    <Card className="flex flex-col gap-4 p-[22px]">
+    <Card id="solidarite" className="flex scroll-mt-4 flex-col gap-4 p-[22px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[22px] font-bold">Solidarité</h2>

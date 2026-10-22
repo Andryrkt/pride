@@ -518,6 +518,53 @@ export const commissionRequests = pgTable(
   (t) => [uniqueIndex("commission_requests_pending_uq").on(t.memberId, t.commissionId).where(sql`status = 'DEMANDEE'`)],
 );
 
+// ---------------------------------------------------------------------------
+// Messagerie des membres : assistant automatique, puis responsables
+// ---------------------------------------------------------------------------
+
+export const messageRecipient = pgEnum("message_recipient", ["ASSISTANT", "TRESORIER", "SECRETARIAT", "COORDONNATEUR", "COMMISSION_SOCIALE"]);
+export const messageSender = pgEnum("message_sender", ["MEMBRE", "ASSISTANT", "EQUIPE"]);
+
+/** Une conversation par membre et par destinataire. Les dates de lecture servent aux pastilles « non lu ». */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    recipient: messageRecipient("recipient").notNull(),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSender: messageSender("last_sender").notNull().default("MEMBRE"),
+    memberReadAt: timestamp("member_read_at", { withTimezone: true }),
+    staffReadAt: timestamp("staff_read_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("conversations_member_recipient_uq").on(t.memberId, t.recipient), index("conversations_last_idx").on(t.lastMessageAt)],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: id(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    sender: messageSender("sender").notNull(),
+    /** Membre qui écrit (le membre lui-même, ou le dirigeant qui répond). Vide pour l'assistant. */
+    authorId: text("author_id").references(() => members.id),
+    body: text("body").notNull(),
+    /** Assistant : liens utiles et boutons de réponse rapide (« MENU » ou « TRANSFERT »). */
+    links: jsonb("links").$type<{ label: string; href: string }[]>(),
+    chips: text("chips"),
+    attachmentKey: text("attachment_key"),
+    attachmentName: text("attachment_name"),
+    attachmentType: text("attachment_type"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("messages_conversation_idx").on(t.conversationId, t.createdAt)],
+);
+
 export const contactMessages = pgTable("contact_messages", {
   id: id(),
   name: text("name").notNull(),
@@ -669,6 +716,16 @@ export const offerInterestsRelations = relations(offerInterests, ({ one }) => ({
 export const commissionRequestsRelations = relations(commissionRequests, ({ one }) => ({
   member: one(members, { fields: [commissionRequests.memberId], references: [members.id] }),
   commission: one(commissions, { fields: [commissionRequests.commissionId], references: [commissions.id] }),
+}));
+
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  member: one(members, { fields: [conversations.memberId], references: [members.id] }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, { fields: [messages.conversationId], references: [conversations.id] }),
+  author: one(members, { fields: [messages.authorId], references: [members.id] }),
 }));
 
 export const resolutionsRelations = relations(resolutions, ({ one }) => ({

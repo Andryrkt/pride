@@ -14,6 +14,16 @@ export type MemberCategory = keyof typeof TARIFS;
 /** Règlement intérieur, art. 6 : aide versée lors d'un événement heureux ou douloureux. */
 export const AIDE_SOLIDARITE = { membre: 50_000, famille: 25_000 } as const;
 
+/** Destinataires de la messagerie membres : l'assistant automatique, puis les responsables à qui il transmet. */
+export const MESSAGE_RECIPIENTS = {
+  ASSISTANT: "Assistant PRIDe",
+  TRESORIER: "Trésorier",
+  SECRETARIAT: "Secrétariat général",
+  COORDONNATEUR: "Coordonnateur",
+  COMMISSION_SOCIALE: "Commission sociale",
+} as const;
+export type MessageRecipient = keyof typeof MESSAGE_RECIPIENTS;
+
 /** Offres partagées entre membres. */
 export const OFFER_TYPES = { STAGE: "Stage", EMPLOI: "Emploi", BENEVOLAT: "Bénévolat" } as const;
 export type OfferType = keyof typeof OFFER_TYPES;

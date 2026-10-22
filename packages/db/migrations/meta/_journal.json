@@ -57,6 +57,13 @@
       "when": 1792648185419,
       "tag": "0007_offres_competences",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792652842005,
+      "tag": "0008_messagerie",
+      "breakpoints": true
     }
   ]
 }

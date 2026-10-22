@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, db, eq, gte, inArray, isNull, lte, or, schema } from "@pride/db";
-import { DUREE_MANDAT_COMMISSION, mandateActive, mandateEnd } from "@pride/shared";
+import { DUREE_MANDAT_COMMISSION, mandateActive, mandateEnd, type MandateRole } from "@pride/shared";
 
 export class CommissionError extends Error {}
 
@@ -82,8 +82,8 @@ export async function removeCommissionMember(commissionId: string, memberId: str
     .where(and(eq(schema.commissionMemberships.commissionId, commissionId), eq(schema.commissionMemberships.memberId, memberId)));
 }
 
-/** E-mails des responsables en fonction aujourd'hui d'une commission (par son slug), et des autres rôles demandés (ex. Trésorier). */
-export async function responsableEmails(slug: string, extraRoles: ("TRESORIER" | "COORDONNATEUR")[] = []) {
+/** E-mails des responsables en fonction aujourd'hui d'une commission (par son slug, ou aucune), et des autres rôles demandés (ex. Trésorier). */
+export async function responsableEmails(slug: string | null, extraRoles: MandateRole[] = []) {
   const now = new Date();
   const mandates = await db.query.mandates.findMany({
     where: and(

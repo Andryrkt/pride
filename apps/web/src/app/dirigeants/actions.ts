@@ -6,6 +6,7 @@ import { agrementSchema } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
 import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
+import { MessagingError, staffReply } from "@/lib/messaging";
 import { closeOffer, decideCommissionRequest, decideOffer, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
 import { slugify, type FormState } from "@/lib/utils";
@@ -224,4 +225,24 @@ export async function decideCommissionRequestAction(id: string, accept: boolean,
   revalidatePath(`/dirigeants/commissions/${slug}`);
   revalidatePath("/membre/competences");
   redirect(`/dirigeants/commissions/${slug}?ok=${encodeURIComponent(accept ? "Demande acceptée : le membre rejoint la commission." : "Demande refusée.")}`);
+}
+
+// ---------------------------------------------------------------------------
+// Messagerie : réponse aux membres
+// ---------------------------------------------------------------------------
+
+export async function staffReplyAction(conversationId: string, _p: FormState, f: FormData): Promise<FormState> {
+  const body = String(f.get("body") ?? "").trim().slice(0, 4000);
+  const file = f.get("attachment");
+  const hasFile = file instanceof File && file.size > 0;
+  if (!body && !hasFile) return { ok: false, message: "Écrivez un message." };
+  try {
+    const v = await requireDirigeant();
+    const c = await staffReply(v.member, conversationId, body || "Pièce jointe", hasFile ? file : undefined);
+    await audit(v.member.id, "messagerie.reponse", conversationId, { memberId: c.memberId, recipient: c.recipient });
+  } catch (e) {
+    return e instanceof MessagingError ? { ok: false, message: e.message } : fail(e);
+  }
+  revalidatePath("/dirigeants", "layout");
+  return { ok: true };
 }

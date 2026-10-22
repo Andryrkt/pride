@@ -138,3 +138,18 @@ export function normalizePhone(phone: string): string {
 export function memberNumber(year: number, seq: number): string {
   return `PR-${year}-${String(seq).padStart(4, "0")}`;
 }
+
+export type AssistantIntent = "COTISATION" | "FORMATION" | "SOLIDARITE" | "AG" | "CARTE" | "RESPONSABLE" | "MERCI" | "INCONNU";
+
+/** Assistant de la messagerie : sujet d'une question, par mots-clés (sans accents ni majuscules). */
+export function assistantIntent(question: string): AssistantIntent {
+  const s = question.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (/responsable|humain|personne|bureau|tresor|secr|coordon|parler/.test(s)) return "RESPONSABLE";
+  if (/cotis|payer|paie|recu|mvola|orange|airtel|retard/.test(s)) return "COTISATION";
+  if (/format|atelier|cours|apprendre/.test(s)) return "FORMATION";
+  if (/solidar|naissance|mariage|deces|malad|hospital|aide/.test(s)) return "SOLIDARITE";
+  if (/\bag\b|assemblee|vote|quorum|convocation/.test(s)) return "AG";
+  if (/carte|adherent|numero/.test(s)) return "CARTE";
+  if (/merci/.test(s)) return "MERCI";
+  return "INCONNU";
+}
