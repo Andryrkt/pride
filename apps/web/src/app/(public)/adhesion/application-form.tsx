@@ -140,7 +140,7 @@ export function ApplicationForm({ sponsors }: { sponsors: Sponsor[] }) {
         <div className="grid gap-4 rounded-2xl border border-[#f1c9c3] bg-[#fff7f5] p-4 sm:grid-cols-2">
           <p className="sm:col-span-2 text-[15px]">Candidat mineur : l'un de vos parents ou votre tuteur doit être membre et accepter votre adhésion (cotisation 5 000 Ar / mois).</p>
           <Input label="Nom du parent ou tuteur membre" name="parentName" required defaultValue={d.parentName} error={e.parentName} />
-          <Input label="Son numéro de membre" name="parentMemberNumber" required placeholder="PR-2025-0031" defaultValue={d.parentMemberNumber} error={e.parentMemberNumber} />
+          <Input label="Son numéro de membre" name="parentMemberNumber" required placeholder="PRIDE2025030031" defaultValue={d.parentMemberNumber} error={e.parentMemberNumber} />
         </div>
       )}
       <Input label="Compétences que je peux partager" name="skills" defaultValue={d.skills} placeholder="Ex. : Excel, anglais, couture, comptabilité…" />

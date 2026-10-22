@@ -102,7 +102,7 @@ export const members = pgTable(
   "members",
   {
     id: id(),
-    number: text("number").notNull().unique(), // PR-2026-0042
+    number: text("number").notNull().unique(), // PRIDE2026100001
     userId: text("user_id")
       .unique()
       .references(() => user.id, { onDelete: "set null" }),
@@ -118,6 +118,9 @@ export const members = pgTable(
     shareSkills: boolean("share_skills").notNull().default(false),
     category: memberCategory("category").notNull().default("ACTIF"),
     status: memberStatus("status").notNull().default("ACTIF"),
+    /** Fin de la qualité de membre (démission, exclusion, décès) : date et note du registre. */
+    statusChangedAt: date("status_changed_at", { mode: "date" }),
+    statusNote: text("status_note"),
     joinedAt: date("joined_at", { mode: "date" }).notNull().defaultNow(),
     isFounder: boolean("is_founder").notNull().default(false),
     /** Mineur : parent ou tuteur membre (statuts, art. 5). */
@@ -182,6 +185,36 @@ export const commissionMemberships = pgTable(
     joinedAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.memberId, t.commissionId] })],
+);
+
+/**
+ * Procédure d'exclusion (règlement intérieur, art. 2) : le membre est informé du motif et convoqué pour se défendre,
+ * puis le CA délibère ; l'exclusion demande les deux tiers des membres présents.
+ */
+export const exclusionStatus = pgEnum("exclusion_status", ["OUVERTE", "ADOPTEE", "REJETEE"]);
+
+export const exclusionProcedures = pgTable(
+  "exclusion_procedures",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+    reason: text("reason").notNull(),
+    hearingAt: timestamp("hearing_at", { withTimezone: true }).notNull(),
+    status: exclusionStatus("status").notNull().default("OUVERTE"),
+    defense: text("defense"),
+    meetingDate: date("meeting_date", { mode: "date" }),
+    presents: integer("presents"),
+    votesFor: integer("votes_for"),
+    votesAgainst: integer("votes_against"),
+    openedBy: text("opened_by"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  // Une seule procédure en cours par membre.
+  (t) => [uniqueIndex("exclusion_procedures_open_uq").on(t.memberId).where(sql`status = 'OUVERTE'`)],
 );
 
 // ---------------------------------------------------------------------------
@@ -766,6 +799,10 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
 export const messagesRelations = relations(messages, ({ one }) => ({
   conversation: one(conversations, { fields: [messages.conversationId], references: [conversations.id] }),
   author: one(members, { fields: [messages.authorId], references: [members.id] }),
+}));
+
+export const exclusionProceduresRelations = relations(exclusionProcedures, ({ one }) => ({
+  member: one(members, { fields: [exclusionProcedures.memberId], references: [members.id] }),
 }));
 
 export const resolutionsRelations = relations(resolutions, ({ one }) => ({

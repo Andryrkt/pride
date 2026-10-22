@@ -53,7 +53,7 @@ try {
   const pdf = await PDFDocument.load(await readFile(await download.path()));
   const { width, height } = pdf.getPage(0).getSize();
   if (pdf.getPageCount() !== 1 || Math.abs(width - 153.1) > 1 || Math.abs(height - 242.6) > 1) fail(`PDF inattendu : ${pdf.getPageCount()} page(s), ${width}×${height} pt`);
-  if (!/^carte-pride-PR-\d{4}-\d{4}\.pdf$/.test(download.suggestedFilename())) fail(`nom de fichier inattendu : ${download.suggestedFilename()}`);
+  if (!/^carte-pride-PRIDE\d{10}\.pdf$/.test(download.suggestedFilename())) fail(`nom de fichier inattendu : ${download.suggestedFilename()}`);
   log("PDF en portrait téléchargé :", download.suggestedFilename(), "· 54 × 85,6 mm");
 
   // L'adresse du QR : /verifier/<identifiant du membre>

@@ -6,6 +6,7 @@ import { agrementSchema } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
 import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
+import { decideExclusion, MembershipError, openExclusion, recordDeparture } from "@/lib/membership";
 import { MessagingError, staffReply } from "@/lib/messaging";
 import { closeOffer, decideCommissionRequest, decideOffer, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
@@ -245,4 +246,57 @@ export async function staffReplyAction(conversationId: string, _p: FormState, f:
   }
   revalidatePath("/dirigeants", "layout");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Registre : démission, décès, exclusion (RI, art. 2)
+// ---------------------------------------------------------------------------
+
+function memberPage(id: string, message: string): never {
+  revalidatePath("/dirigeants", "layout");
+  redirect(`/dirigeants/membres/${id}?ok=${encodeURIComponent(message)}`);
+}
+const membershipFail = (e: unknown): FormState => (e instanceof MembershipError ? { ok: false, message: e.message } : fail(e));
+
+export async function departureAction(memberId: string, status: "DEMISSIONNAIRE" | "DECEDE", _p: FormState, f: FormData): Promise<FormState> {
+  const on = new Date(String(f.get("date") ?? ""));
+  const note = String(f.get("note") ?? "").trim();
+  if (Number.isNaN(on.getTime())) return { ok: false, message: "Vérifiez les champs indiqués.", errors: { date: "Date : champ obligatoire" } };
+  try {
+    const v = await guard();
+    const r = await recordDeparture(memberId, status, on, note);
+    await audit(v.member.id, status === "DECEDE" ? "membre.deces" : "membre.demission", memberId, { date: on, note, mandatsTermines: r.endedMandates });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, status === "DECEDE" ? "Décès enregistré au registre." : "Démission enregistrée : la carte n'est plus valide.");
+}
+
+export async function openExclusionAction(memberId: string, _p: FormState, f: FormData): Promise<FormState> {
+  const reason = String(f.get("reason") ?? "").trim();
+  const hearingAt = new Date(String(f.get("hearingAt") ?? ""));
+  const errors: Record<string, string> = {};
+  if (!reason) errors.reason = "Motif : champ obligatoire";
+  if (Number.isNaN(hearingAt.getTime())) errors.hearingAt = "Date de l'audition : champ obligatoire";
+  if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors };
+  let emailed = false;
+  try {
+    const v = await guard();
+    const r = await openExclusion(memberId, reason.slice(0, 2000), hearingAt, v.member.id);
+    emailed = r.emailed;
+    await audit(v.member.id, "membre.exclusion_ouverture", memberId, { reason, hearingAt });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, emailed ? "Procédure ouverte : le membre a reçu le motif et la convocation par e-mail." : "Procédure ouverte. Ce membre n'a pas d'e-mail : remettez-lui le motif et la convocation par écrit.");
+}
+
+export async function decideExclusionAction(procedureId: string, memberId: string, _p: FormState, f: FormData): Promise<FormState> {
+  const parsed = agrementSchema.safeParse(Object.fromEntries(["meetingDate", "presents", "pour", "contre"].map((k) => [k, f.get(k)])));
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]!.message };
+  if (f.get("heard") !== "on") return { ok: false, message: "Confirmez que le membre a pu présenter sa défense (par écrit ou lors de l'audition)." };
+  const defense = String(f.get("defense") ?? "").trim();
+  let adopted = false;
+  try {
+    const v = await guard();
+    adopted = (await decideExclusion(procedureId, { ...parsed.data, defense }, v.member.id)).adopted;
+    await audit(v.member.id, adopted ? "membre.exclusion" : "membre.exclusion_rejetee", memberId, { ...parsed.data, defense });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, adopted ? "Exclusion prononcée (deux tiers des présents) : la carte n'est plus valide." : "Deux tiers des présents non atteints : le membre reste membre, la procédure est close.");
 }

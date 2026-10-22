@@ -5,7 +5,7 @@
  *   pnpm db:seed
  */
 import { hashPassword } from "better-auth/crypto";
-import { COMMISSIONS, memberNumber, periodsBetween, TARIFS } from "@pride/shared";
+import { COMMISSIONS, memberCounterPeriod, memberNumber, periodsBetween, TARIFS } from "@pride/shared";
 import { and, eq } from "drizzle-orm";
 import { closeDb, db, nextCounter } from "../src/index";
 import * as s from "../src/schema";
@@ -19,8 +19,8 @@ async function upsertMember(input: { lastName: string; firstNames: string; isFou
     where: and(eq(s.members.lastName, input.lastName), eq(s.members.firstNames, input.firstNames)),
   });
   if (existing) return existing;
-  const year = (input.joinedAt ?? new Date()).getFullYear();
-  const number = memberNumber(year, await nextCounter(`member-${year}`));
+  const joined = input.joinedAt ?? new Date();
+  const number = memberNumber(joined, await nextCounter(`member-${memberCounterPeriod(joined)}`));
   const [m] = await db
     .insert(s.members)
     .values({ number, category: "ACTIF", isFounder: input.isFounder ?? false, ...input })

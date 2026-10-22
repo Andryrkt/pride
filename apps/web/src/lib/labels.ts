@@ -6,3 +6,10 @@ export const APPLICATION_STATUS: Record<string, [string, "green" | "yellow" | "r
   REFUSEE: ["Refusée", "red"],
   MEMBRE: ["Membre", "dark"],
 };
+
+export const MEMBER_STATUS: Record<string, [string, "green" | "yellow" | "red" | "gray" | "dark"]> = {
+  ACTIF: ["Actif", "green"],
+  DEMISSIONNAIRE: ["Démissionnaire", "gray"],
+  EXCLU: ["Exclu", "red"],
+  DECEDE: ["Décédé", "dark"],
+};

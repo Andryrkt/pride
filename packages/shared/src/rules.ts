@@ -134,10 +134,13 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/\s/g, "").replace(/^\+261/, "0");
 }
 
-/** Numéro de membre « PR-2026-0042 ». */
-export function memberNumber(year: number, seq: number): string {
-  return `PR-${year}-${String(seq).padStart(4, "0")}`;
+/** Numéro de membre « PRIDE2026100001 » : année, mois d'entrée, puis rang d'arrivée dans le mois (le compteur repart chaque mois). */
+export function memberNumber(date: Date, seq: number): string {
+  return `PRIDE${memberCounterPeriod(date)}${String(seq).padStart(4, "0")}`;
 }
+
+/** Période du compteur des numéros de membre : « 202610 ». */
+export const memberCounterPeriod = (date: Date) => `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}`;
 
 export type AssistantIntent = "COTISATION" | "FORMATION" | "SOLIDARITE" | "AG" | "CARTE" | "RESPONSABLE" | "MERCI" | "INCONNU";
 

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { and, asc, db, eq, ilike, or, schema, type SQL } from "@pride/db";
 import { TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { Badge, Card } from "@/components/ui/card";
+import { MEMBER_STATUS } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
 
 export default async function RegistryPage({ searchParams }: { searchParams: Promise<{ q?: string; categorie?: string }> }) {
@@ -34,7 +36,7 @@ export default async function RegistryPage({ searchParams }: { searchParams: Pro
       <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[760px] text-left text-[14.5px]">
           <thead className="bg-paper text-xs uppercase tracking-wider text-muted">
-            <tr><th className="px-4 py-3">N°</th><th>Nom</th><th>Catégorie</th><th>Depuis</th><th>Téléphone</th><th>Cotisation</th></tr>
+            <tr><th className="px-4 py-3">N°</th><th>Nom</th><th>Catégorie</th><th>Depuis</th><th>Téléphone</th><th>Statut</th><th>Cotisation</th></tr>
           </thead>
           <tbody>
             {members.map((m) => {
@@ -42,11 +44,15 @@ export default async function RegistryPage({ searchParams }: { searchParams: Pro
               return (
                 <tr key={m.id} className="border-t border-line">
                   <td className="px-4 py-3 font-mono text-sm">{m.number}</td>
-                  <td className="font-semibold">{m.lastName} {m.firstNames}{m.mandates.length > 0 && <Badge tone="dark" className="ml-2">Dirigeant</Badge>}</td>
+                  <td className="font-semibold">
+                    <Link href={`/dirigeants/membres/${m.id}`} className="text-brand-600 hover:underline">{m.lastName} {m.firstNames}</Link>
+                    {m.mandates.some((x) => !x.endsAt || new Date(x.endsAt) >= new Date()) && <Badge tone="dark" className="ml-2">Dirigeant</Badge>}
+                  </td>
                   <td>{TARIFS[m.category as MemberCategory].label}</td>
                   <td>{formatDate(m.joinedAt)}</td>
                   <td>{m.phone ?? "—"}</td>
-                  <td><Badge tone={late ? "red" : "green"}>{late ? `${late} échéance(s) à payer` : "À jour"}</Badge></td>
+                  <td><Badge tone={MEMBER_STATUS[m.status]![1]}>{MEMBER_STATUS[m.status]![0]}</Badge></td>
+                  <td>{m.status === "ACTIF" ? <Badge tone={late ? "red" : "green"}>{late ? `${late} échéance(s) à payer` : "À jour"}</Badge> : "—"}</td>
                 </tr>
               );
             })}

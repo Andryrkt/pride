@@ -8,6 +8,7 @@ import {
   entryFee,
   isMinor,
   MAX_UPLOAD_BYTES,
+  memberCounterPeriod,
   memberNumber,
   monthlyFee,
   periodOf,
@@ -146,8 +147,8 @@ export async function createMemberFromApplication(applicationId: string, actorId
   if (!a || a.status !== "AGREEE") throw new ApplicationError("Seule une candidature agréée peut devenir membre.");
 
   const member = await db.transaction(async (tx) => {
-    const year = new Date().getFullYear();
-    const number = memberNumber(year, await nextCounter(`member-${year}`, tx));
+    const now = new Date();
+    const number = memberNumber(now, await nextCounter(`member-${memberCounterPeriod(now)}`, tx));
     let parentId: string | null = null;
     if (a.parentMemberNumber) {
       const parent = await tx.query.members.findFirst({ where: eq(schema.members.number, a.parentMemberNumber) });

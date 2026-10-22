@@ -8,6 +8,6 @@ export function json(data: unknown, status = 200) {
 /** Authentifie une requête de l'application mobile (cookie de session Better Auth). */
 export async function memberFromRequest(req: Request) {
   const v = await getViewerFromRequest(req);
-  if (!v?.member) return null;
+  if (!v?.member || v.member.status !== "ACTIF") return null;
   return v as typeof v & { member: NonNullable<typeof v.member> };
 }

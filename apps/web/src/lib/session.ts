@@ -40,6 +40,8 @@ export async function requireMember() {
   const v = await getViewer();
   if (!v) redirect("/connexion");
   if (!v.member) redirect("/connexion?erreur=compte-sans-fiche");
+  // Démission, exclusion ou décès : l'espace membre est fermé.
+  if (v.member.status !== "ACTIF") redirect("/connexion?erreur=compte-inactif");
   return v as typeof v & { member: NonNullable<typeof v.member> };
 }
 

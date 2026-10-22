@@ -23,7 +23,8 @@ describe("règles des statuts", () => {
   });
   it("formats", () => {
     expect(formatAriary(10000)).toBe("10 000 Ar");
-    expect(memberNumber(2026, 42)).toBe("PR-2026-0042");
+    expect(memberNumber(new Date(2026, 9, 21), 1)).toBe("PRIDE2026100001");
+    expect(memberNumber(new Date(2026, 0, 5), 42)).toBe("PRIDE2026010042");
     expect(periodsBetween(new Date(2026, 10, 15), new Date(2027, 1, 1))).toEqual(["2026-11", "2026-12", "2027-01", "2027-02"]);
   });
   it("mandats : durée et période en cours", () => {

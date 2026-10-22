@@ -72,7 +72,7 @@ try {
   await page.waitForSelector("text=Adhésion agréée par le conseil.");
   log("délibération : 4 pour sur 5 présents → agréée");
   await page.getByRole("button", { name: "Créer la fiche membre" }).click();
-  await page.waitForSelector("text=/Fiche membre PR-\\d{4}-\\d{4} créée/");
+  await page.waitForSelector("text=/Fiche membre PRIDE\\d{10} créée/");
   await shot(page, "4-agrement");
   log("fiche membre créée");
 

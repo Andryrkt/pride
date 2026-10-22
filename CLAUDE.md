@@ -11,6 +11,7 @@ L'équipe de développement est composée de bénévoles. Parlez en **français*
 - Sections régionales : 90 % des cotisations pour la section, 10 % pour l'association.
 - Journal comptable **non modifiable** (statuts, art. 21) : un trigger PostgreSQL l'impose (migration `0001`). On corrige par une écriture de rectification.
 - Aide de solidarité : 50 000 Ar au membre, 25 000 Ar à la famille proche.
+- Numéro de membre : `PRIDE` + année + mois d'entrée + rang dans le mois sur 4 chiffres (ex. `PRIDE2026100001`) ; le compteur repart chaque mois (`memberNumber` dans `rules.ts`).
 - Conseil d'administration : Président ANDRIAMALALATOVONIAINA Ernest, Vice-président RANDRIAMANALINA Jean Alfred, 5 conseillers.
 - Bureau exécutif : Coordonnateur ANDRIANADISON Lanto Tsiafindrahasina Nantenaina ; Secrétaire générale Manovosoa Nandrianiana (selon le PV ; la présentation indique « Manou Davide Kens », à confirmer) ; **poste de Trésorier vacant**.
 - Contact : association4pride@gmail.com · 032 67 288 62 · siège CLT Tsiadana.
@@ -41,6 +42,7 @@ node tests/carte.e2e.mjs                             # carte de membre (QR + PDF
 node tests/reseau.e2e.mjs                            # formations, offres, compétences, commissions : site lancé, base avec démo
 node tests/messagerie.e2e.mjs                        # messagerie (assistant + responsables) : site lancé, base avec démo
 node tests/consultation.e2e.mjs                      # consultation en ligne (vote anonyme) : site lancé, base avec démo
+node tests/exclusion.e2e.mjs                         # exclusion / démission (≈ 2 min, crée des membres fictifs en base)
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
 DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=react-server tests/paiements.check.mts
 # BASE_URL=http://localhost:3001 pour un autre port ; CHROMIUM_PATH=… pour un Chromium déjà installé
@@ -71,6 +73,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
     - bloc « Offres récentes » et « Prochaine formation » sur le tableau de bord. Test : `node tests/reseau.e2e.mjs`.
   - messagerie des membres (`apps/web/src/lib/messaging.ts`) : « Assistant PRIDe » par mots-clés (`assistantIntent` dans `rules.ts`, testé) qui répond avec les données du membre (cotisations dues, prochaine formation, AG convoquée, carte) ; « Parler à un responsable » transmet la dernière question au Trésorier, au Secrétariat général, au Coordonnateur ou à la Commission sociale ; réponses dans Dirigeants › Messagerie (tous les dirigeants, signées de leur nom) ; pièces jointes ; e-mails dans les deux sens ; pastilles « non lu ». Les échanges avec l'assistant ne sont pas visibles des dirigeants. Pas de temps réel : la page se met à jour à l'envoi ou au rechargement. Test : `node tests/messagerie.e2e.mjs`.
   - consultations en ligne (« vote en ligne » de la maquette, `apps/web/src/lib/consultations.ts`) : ouvertes par le CA, la Secrétaire générale ou l'administrateur sur la page AG (2 à 6 réponses, date de clôture) ; vote **anonyme** des membres actifs majeurs, une seule fois (`consultation_voters` et `consultation_ballots` sans lien entre eux) ; résultats après le vote ou la clôture ; carte « vote en ligne ouvert » sur le tableau de bord. **Avis consultatif** : les résolutions restent votées en séance d'AG (quorum des présents, pas de procuration). Test : `node tests/consultation.e2e.mjs`.
+  - fin de la qualité de membre (`apps/web/src/lib/membership.ts`, fiche membre dans Dirigeants › Registre) : démission et décès enregistrés par le CA, la Secrétaire générale ou l'administrateur ; exclusion en deux étapes (motif et convocation du membre à une audition, puis délibération du CA **après l'audition**, adoptée aux 2/3 des présents avec `exclusionAdopted`). Effets : statut, fin des mandats, sortie des commissions, carte « non valide », espace membre et API fermés. Pas sur sa propre fiche. Test : `node tests/exclusion.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;
