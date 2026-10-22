@@ -9,6 +9,7 @@ import { validateFile } from "@/lib/applications";
 import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
 import { askHelp, closeOffer, expressInterest, NetworkError, proposeOffer, requestCommission, sendProposal } from "@/lib/network";
 import { handOff, HUMAN_RECIPIENTS, MENU_CHIPS, MessagingError, postMemberMessage } from "@/lib/messaging";
+import { ConsultationError, voteConsultation } from "@/lib/consultations";
 import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import type { FormState } from "@/lib/utils";
 
@@ -214,4 +215,18 @@ export async function handOffAction(recipient: string) {
   if (!target) return;
   await handOff(v.member, target);
   revalidatePath("/membre", "layout");
+}
+
+export async function voteConsultationAction(consultationId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  const raw = formData.get("option");
+  if (raw === null) return { ok: false, message: "Choisissez une réponse." };
+  try {
+    await voteConsultation(v.member, consultationId, Number(raw));
+  } catch (e) {
+    if (e instanceof ConsultationError) return { ok: false, message: e.message };
+    throw e;
+  }
+  revalidatePath("/membre", "layout");
+  return { ok: true, message: "Merci, votre vote est enregistré." };
 }

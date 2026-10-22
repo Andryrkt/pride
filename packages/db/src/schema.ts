@@ -266,6 +266,46 @@ export const resolutions = pgTable(
   (t) => [uniqueIndex("resolutions_position_uq").on(t.assemblyId, t.position)],
 );
 
+/**
+ * Consultation en ligne : avis des membres (ex. thème de formation prioritaire), distincte des résolutions,
+ * qui restent votées en séance d'AG (quorum des présents, pas de procuration).
+ */
+export const consultations = pgTable("consultations", {
+  id: id(),
+  question: text("question").notNull(),
+  options: text("options").array().notNull(),
+  closesAt: timestamp("closes_at", { withTimezone: true }).notNull(),
+  createdBy: text("created_by"),
+  createdAt: createdAt(),
+});
+
+/** Qui a voté (un vote par membre). Volontairement sans lien avec le bulletin : le vote est anonyme. */
+export const consultationVoters = pgTable(
+  "consultation_voters",
+  {
+    consultationId: text("consultation_id")
+      .notNull()
+      .references(() => consultations.id, { onDelete: "cascade" }),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+  },
+  (t) => [primaryKey({ columns: [t.consultationId, t.memberId] })],
+);
+
+/** Bulletins anonymes : seulement le choix, ni membre ni heure. */
+export const consultationBallots = pgTable(
+  "consultation_ballots",
+  {
+    id: id(),
+    consultationId: text("consultation_id")
+      .notNull()
+      .references(() => consultations.id, { onDelete: "cascade" }),
+    option: integer("option").notNull(),
+  },
+  (t) => [index("consultation_ballots_idx").on(t.consultationId)],
+);
+
 // ---------------------------------------------------------------------------
 // Candidatures (règlement intérieur, art. 1)
 // ---------------------------------------------------------------------------

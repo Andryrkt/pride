@@ -2,12 +2,13 @@ import Image from "next/image";
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { asc, desc, db, eq, gte, and, inArray, schema } from "@pride/db";
-import { formatAriary, OFFER_TYPES, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
+import { canVoteAtAG, formatAriary, OFFER_TYPES, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ButtonLink, buttonVariants } from "@/components/ui/button";
 import { Badge, Card, Eyebrow } from "@/components/ui/card";
 import { KIND_LABELS } from "@/lib/assemblies";
 import { cardQrSvg } from "@/lib/card";
+import { openConsultations } from "@/lib/consultations";
 import { dueLabel, ensureDues, listDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { SOLIDARITY_STATUS } from "@/lib/solidarity";
@@ -26,7 +27,7 @@ export default async function MemberDashboard() {
   const { member } = await requireMember();
   await ensureDues(member);
   const now = new Date();
-  const [dues, posts, nextTraining, nextEvent, nextAg, aids, offers] = await Promise.all([
+  const [dues, posts, nextTraining, nextEvent, nextAg, aids, offers, polls, myVotes] = await Promise.all([
     listDues(member.id),
     db.query.posts.findMany({ orderBy: desc(schema.posts.publishedAt), limit: 3 }),
     db.query.posts.findFirst({ where: and(eq(schema.posts.type, "FORMATION"), gte(schema.posts.eventAt, now)), orderBy: asc(schema.posts.eventAt) }),
@@ -34,7 +35,11 @@ export default async function MemberDashboard() {
     db.query.assemblies.findFirst({ where: inArray(schema.assemblies.status, ["CONVOQUEE", "EN_SEANCE"]), orderBy: asc(schema.assemblies.scheduledAt) }),
     db.query.solidarityRequests.findMany({ where: eq(schema.solidarityRequests.memberId, member.id), orderBy: desc(schema.solidarityRequests.createdAt), limit: 5 }),
     db.query.offers.findMany({ where: eq(schema.offers.status, "PUBLIEE"), orderBy: desc(schema.offers.createdAt), limit: 3 }),
+    openConsultations(),
+    db.query.consultationVoters.findMany({ where: eq(schema.consultationVoters.memberId, member.id) }),
   ]);
+  // Consultations ouvertes où le membre peut encore voter
+  const toVote = canVoteAtAG(member) ? polls.filter((c) => !myVotes.some((v) => v.consultationId === c.id)) : [];
   // Comme la maquette : la prochaine formation en priorité, sinon le prochain événement.
   const next = nextTraining ?? nextEvent;
   const unpaid = dues.filter((d) => d.status === "A_PAYER");
@@ -120,7 +125,16 @@ export default async function MemberDashboard() {
               <ButtonLink href={next.type === "FORMATION" ? "/membre/formations" : "/membre/actualites"} variant="outline">Voir</ButtonLink>
             </Card>
           )}
-          {nextAg && (
+          {toVote.length > 0 ? (
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-[22px]">
+              <div className="min-w-0">
+                <Eyebrow>Assemblée générale</Eyebrow>
+                <div className="text-[17px] font-bold">{toVote.length} vote{toVote.length > 1 ? "s" : ""} en ligne ouvert{toVote.length > 1 ? "s" : ""}</div>
+                <div className="text-sm text-muted">Clôture le {formatDateTime(toVote[0]!.closesAt)}</div>
+              </div>
+              <ButtonLink href="/membre/ag#consultations" variant="outline">Voter</ButtonLink>
+            </Card>
+          ) : nextAg && (
             <Card className="flex flex-wrap items-center justify-between gap-3 p-[22px]">
               <div className="min-w-0">
                 <Eyebrow>Assemblée générale</Eyebrow>

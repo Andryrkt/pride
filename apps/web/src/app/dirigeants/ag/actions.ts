@@ -18,6 +18,7 @@ import {
   updateAssembly,
   type AssemblyInput,
 } from "@/lib/assemblies";
+import { createConsultation } from "@/lib/consultations";
 import { audit, canManageAssemblies, requireDirigeant } from "@/lib/session";
 import type { FormState } from "@/lib/utils";
 
@@ -208,4 +209,25 @@ export async function closeSessionAction(id: string, _p: FormState, f: FormData)
     await audit(v.member.id, "ag.cloture", id);
   } catch (e) { return fail(e); }
   done(id, "Séance clôturée : le procès-verbal est définitif.");
+}
+
+/** Consultation en ligne : 2 à 6 réponses (une par ligne), date de clôture dans le futur. */
+export async function createConsultationAction(_p: FormState, f: FormData): Promise<FormState> {
+  const question = String(f.get("question") ?? "").trim();
+  const options = [...new Set(String(f.get("options") ?? "").split(/\r?\n/).map((o) => o.trim()).filter(Boolean))];
+  const closesAt = new Date(String(f.get("closesAt") ?? ""));
+  const errors: Record<string, string> = {};
+  if (!question) errors.question = "Question : champ obligatoire";
+  if (options.length < 2 || options.length > 6) errors.options = "Réponses : de 2 à 6, une par ligne";
+  if (Number.isNaN(closesAt.getTime()) || closesAt <= new Date()) errors.closesAt = "Clôture : une date dans le futur";
+  const data = { question, options: String(f.get("options") ?? ""), closesAt: String(f.get("closesAt") ?? "") };
+  if (Object.keys(errors).length) return { ...invalid(errors), data };
+  try {
+    const v = await guard();
+    const c = await createConsultation({ question: question.slice(0, 200), options: options.map((o) => o.slice(0, 120)), closesAt }, v.member.id);
+    await audit(v.member.id, "consultation.creation", c.id, { question, options, closesAt });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants/ag");
+  revalidatePath("/membre", "layout");
+  return { ok: true, message: "Consultation ouverte : les membres peuvent voter dans leur espace." };
 }

@@ -40,6 +40,7 @@ node tests/solidarite.e2e.mjs                        # aide de solidarité : sit
 node tests/carte.e2e.mjs                             # carte de membre (QR + PDF) : site lancé, base avec démo
 node tests/reseau.e2e.mjs                            # formations, offres, compétences, commissions : site lancé, base avec démo
 node tests/messagerie.e2e.mjs                        # messagerie (assistant + responsables) : site lancé, base avec démo
+node tests/consultation.e2e.mjs                      # consultation en ligne (vote anonyme) : site lancé, base avec démo
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
 DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=react-server tests/paiements.check.mts
 # BASE_URL=http://localhost:3001 pour un autre port ; CHROMIUM_PATH=… pour un Chromium déjà installé
@@ -69,6 +70,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
     - propositions d'atelier et idées de projet : e-mail à l'association et au responsable de la Commission formation et projets, gardées dans `contact_messages` ;
     - bloc « Offres récentes » et « Prochaine formation » sur le tableau de bord. Test : `node tests/reseau.e2e.mjs`.
   - messagerie des membres (`apps/web/src/lib/messaging.ts`) : « Assistant PRIDe » par mots-clés (`assistantIntent` dans `rules.ts`, testé) qui répond avec les données du membre (cotisations dues, prochaine formation, AG convoquée, carte) ; « Parler à un responsable » transmet la dernière question au Trésorier, au Secrétariat général, au Coordonnateur ou à la Commission sociale ; réponses dans Dirigeants › Messagerie (tous les dirigeants, signées de leur nom) ; pièces jointes ; e-mails dans les deux sens ; pastilles « non lu ». Les échanges avec l'assistant ne sont pas visibles des dirigeants. Pas de temps réel : la page se met à jour à l'envoi ou au rechargement. Test : `node tests/messagerie.e2e.mjs`.
+  - consultations en ligne (« vote en ligne » de la maquette, `apps/web/src/lib/consultations.ts`) : ouvertes par le CA, la Secrétaire générale ou l'administrateur sur la page AG (2 à 6 réponses, date de clôture) ; vote **anonyme** des membres actifs majeurs, une seule fois (`consultation_voters` et `consultation_ballots` sans lien entre eux) ; résultats après le vote ou la clôture ; carte « vote en ligne ouvert » sur le tableau de bord. **Avis consultatif** : les résolutions restent votées en séance d'AG (quorum des présents, pas de procuration). Test : `node tests/consultation.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;
