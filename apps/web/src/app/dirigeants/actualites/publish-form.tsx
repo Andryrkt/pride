@@ -18,18 +18,32 @@ export function PublishForm() {
       <FormMessage state={state} />
       <fieldset className="flex flex-wrap gap-2">
         <legend className="mb-2 text-sm font-semibold">Type de contenu</legend>
-        {[["ARTICLE", "Article"], ["EVENEMENT", "Événement"], ["ANNONCE", "Annonce"]].map(([v, l]) => (
+        {[["ARTICLE", "Article"], ["EVENEMENT", "Événement"], ["FORMATION", "Formation"], ["ANNONCE", "Annonce"]].map(([v, l]) => (
           <label key={v} className={pill(type === v)}>
-            <input type="radio" name="type" value={v} checked={type === v} onChange={() => setType(v!)} className="sr-only" />
+            <input
+              type="radio"
+              name="type"
+              value={v}
+              checked={type === v}
+              // Une formation est réservée aux membres par défaut.
+              onChange={() => { setType(v!); if (v === "FORMATION") setVis("MEMBRES"); }}
+              className="sr-only"
+            />
             {l}
           </label>
         ))}
       </fieldset>
       <Input label="Titre" name="title" required error={e.title} />
-      {type === "EVENEMENT" && (
+      {(type === "EVENEMENT" || type === "FORMATION") && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Date et heure" name="eventAt" type="datetime-local" required error={e.eventAt} />
           <Input label="Lieu" name="location" placeholder="CLT Tsiadana" />
+        </div>
+      )}
+      {type === "FORMATION" && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Domaine" name="domain" required placeholder="Ex. : Bureautique, Langues, Art oratoire" error={e.domain} />
+          <Input label="Nombre de places" name="capacity" type="number" min={1} placeholder="Vide = sans limite" error={e.capacity} />
         </div>
       )}
       <Textarea label="Texte" name="body" required error={e.body} hint="Le premier paragraphe sert de résumé." />

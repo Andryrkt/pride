@@ -1,4 +1,4 @@
-import { and, asc, desc, db, eq, gte, schema } from "@pride/db";
+import { and, asc, desc, db, gte, inArray, schema } from "@pride/db";
 import { PageTitle } from "@/components/site/app-shell";
 import { Badge, Card } from "@/components/ui/card";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -9,7 +9,7 @@ export default async function PublishPage({ searchParams }: { searchParams: Prom
   const [posts, events] = await Promise.all([
     db.query.posts.findMany({ orderBy: desc(schema.posts.publishedAt), limit: 20 }),
     db.query.posts.findMany({
-      where: and(eq(schema.posts.type, "EVENEMENT"), gte(schema.posts.eventAt, new Date())),
+      where: and(inArray(schema.posts.type, ["EVENEMENT", "FORMATION"]), gte(schema.posts.eventAt, new Date())),
       orderBy: asc(schema.posts.eventAt),
       with: { registrations: { with: { member: true }, orderBy: asc(schema.eventRegistrations.createdAt) } },
     }),
@@ -36,7 +36,7 @@ export default async function PublishPage({ searchParams }: { searchParams: Prom
         </Card>
       </div>
       <Card>
-        <h2 className="mb-1 text-xl font-bold">Inscriptions aux événements à venir</h2>
+        <h2 className="mb-1 text-xl font-bold">Inscriptions aux événements et formations à venir</h2>
         <p className="mb-3 text-muted">Membres inscrits depuis leur espace, et visiteurs inscrits depuis l'agenda public (« Je participe »).</p>
         {events.length === 0 && <p className="text-muted">Aucun événement à venir.</p>}
         <div className="flex flex-col gap-3">
@@ -45,7 +45,7 @@ export default async function PublishPage({ searchParams }: { searchParams: Prom
               <summary className="flex cursor-pointer flex-wrap items-center gap-2 font-semibold">
                 {ev.title}
                 <span className="text-sm font-normal text-muted">{formatDateTime(ev.eventAt)}</span>
-                <Badge tone={ev.registrations.length ? "green" : "gray"}>{ev.registrations.length} inscrit(s)</Badge>
+                <Badge tone={ev.registrations.length ? "green" : "gray"}>{ev.registrations.length}{ev.capacity ? ` / ${ev.capacity}` : ""} inscrit(s)</Badge>
               </summary>
               {ev.registrations.length > 0 && (
                 <ul className="mt-2 divide-y divide-line text-[15px]">

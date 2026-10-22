@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PAYMENT_PROVIDERS, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "./constants";
+import { OFFER_TYPES, PAYMENT_PROVIDERS, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "./constants";
 
 const phone = z
   .string({ required_error: "Téléphone : champ obligatoire" })
@@ -72,6 +72,21 @@ export const solidarityRequestSchema = z.object({
   message: z.string().trim().max(1000).optional(),
 });
 
+/** Offre de stage, d'emploi ou de bénévolat proposée par un membre. */
+export const offerSchema = z.object({
+  type: z.enum(keys(OFFER_TYPES), { errorMap: () => ({ message: "Type : champ obligatoire" }) }),
+  title: required("Intitulé").max(140),
+  description: required("Description").max(2000),
+  location: z.string().trim().max(120).optional(),
+});
+
+/** Proposition d'atelier ou idée de projet, transmise à la Commission formation et projets. */
+export const proposalSchema = z.object({
+  kind: z.enum(["ATELIER", "PROJET"]),
+  title: required("Titre").max(140),
+  details: required("Détails").max(2000),
+});
+
 /** Délibération du conseil d'administration sur une candidature. */
 export const agrementSchema = z
   .object({
@@ -95,4 +110,5 @@ export const profileSchema = z.object({
   address: required("Quartier / ville").max(160),
   profession: z.string().trim().max(120).optional(),
   skills: z.array(z.string().trim().min(1).max(40)).max(15),
+  shareSkills: z.boolean(),
 });

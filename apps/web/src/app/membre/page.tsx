@@ -2,7 +2,7 @@ import Image from "next/image";
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { asc, desc, db, eq, gte, and, inArray, schema } from "@pride/db";
-import { formatAriary, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
+import { formatAriary, OFFER_TYPES, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ButtonLink, buttonVariants } from "@/components/ui/button";
 import { Badge, Card, Eyebrow } from "@/components/ui/card";
@@ -26,13 +26,17 @@ export default async function MemberDashboard() {
   const { member } = await requireMember();
   await ensureDues(member);
   const now = new Date();
-  const [dues, posts, nextEvent, nextAg, aids] = await Promise.all([
+  const [dues, posts, nextTraining, nextEvent, nextAg, aids, offers] = await Promise.all([
     listDues(member.id),
-    db.query.posts.findMany({ orderBy: desc(schema.posts.publishedAt), limit: 4 }),
+    db.query.posts.findMany({ orderBy: desc(schema.posts.publishedAt), limit: 3 }),
+    db.query.posts.findFirst({ where: and(eq(schema.posts.type, "FORMATION"), gte(schema.posts.eventAt, now)), orderBy: asc(schema.posts.eventAt) }),
     db.query.posts.findFirst({ where: and(eq(schema.posts.type, "EVENEMENT"), gte(schema.posts.eventAt, now)), orderBy: asc(schema.posts.eventAt) }),
     db.query.assemblies.findFirst({ where: inArray(schema.assemblies.status, ["CONVOQUEE", "EN_SEANCE"]), orderBy: asc(schema.assemblies.scheduledAt) }),
     db.query.solidarityRequests.findMany({ where: eq(schema.solidarityRequests.memberId, member.id), orderBy: desc(schema.solidarityRequests.createdAt), limit: 5 }),
+    db.query.offers.findMany({ where: eq(schema.offers.status, "PUBLIEE"), orderBy: desc(schema.offers.createdAt), limit: 3 }),
   ]);
+  // Comme la maquette : la prochaine formation en priorité, sinon le prochain événement.
+  const next = nextTraining ?? nextEvent;
   const unpaid = dues.filter((d) => d.status === "A_PAYER");
   const lastPaid = [...dues].reverse().find((d) => d.status === "PAYEE" && d.kind === "COTISATION");
   const total = unpaid.reduce((s, d) => s + d.amount, 0);
@@ -106,14 +110,14 @@ export default async function MemberDashboard() {
               <ButtonLink href="/membre/cotisations" variant="outline">Historique</ButtonLink>
             </Card>
           )}
-          {nextEvent && (
+          {next && (
             <Card className="flex flex-wrap items-center justify-between gap-3 p-[22px]">
               <div className="min-w-0">
-                <Eyebrow>Prochain événement</Eyebrow>
-                <div className="text-[17px] font-bold">{nextEvent.title}</div>
-                <div className="text-sm text-muted">{formatDateTime(nextEvent.eventAt)}{nextEvent.location ? ` · ${nextEvent.location}` : ""}</div>
+                <Eyebrow>{next.type === "FORMATION" ? "Prochaine formation" : "Prochain événement"}</Eyebrow>
+                <div className="text-[17px] font-bold">{next.title}</div>
+                <div className="text-sm text-muted">{formatDateTime(next.eventAt)}{next.location ? ` · ${next.location}` : ""}</div>
               </div>
-              <ButtonLink href="/membre/actualites" variant="outline">Voir</ButtonLink>
+              <ButtonLink href={next.type === "FORMATION" ? "/membre/formations" : "/membre/actualites"} variant="outline">Voir</ButtonLink>
             </Card>
           )}
           {nextAg && (
@@ -129,25 +133,48 @@ export default async function MemberDashboard() {
         </div>
       </div>
 
-      <Card className="p-[22px]">
-        <div className="mb-1 flex items-center justify-between gap-3">
-          <h2 className="text-[22px] font-bold">Dernières actualités</h2>
-          <Link href="/membre/actualites" className="text-sm font-semibold text-brand-600">Tout voir</Link>
-        </div>
-        <ul className="divide-y divide-line">
-          {posts.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-              <div>
-                <div className="font-semibold">{p.title}</div>
-                <div className="text-sm text-muted">
-                  {p.type === "EVENEMENT" ? "Agenda" : p.type === "ANNONCE" ? "Annonce" : "Article"} · {p.visibility === "MEMBRES" ? "Membres seulement" : "Tout le monde"}
+      <div className="flex flex-wrap gap-5">
+        <Card className="flex-[1_1_360px] p-[22px]">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <h2 className="text-[22px] font-bold">Offres récentes</h2>
+            <Link href="/membre/formations?vue=offres" className="text-sm font-semibold text-brand-600">Tout voir</Link>
+          </div>
+          {offers.length === 0 ? (
+            <p className="py-3 text-muted">Aucune offre pour le moment. <Link href="/membre/formations?vue=offres" className="font-semibold text-brand-600">Publier une offre</Link></p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {offers.map((o) => (
+                <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold">{o.title}</div>
+                    {o.location && <div className="text-sm text-muted">{o.location}</div>}
+                  </div>
+                  <Badge tone={o.type === "BENEVOLAT" ? "yellow" : o.type === "EMPLOI" ? "dark" : "green"}>{OFFER_TYPES[o.type]}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card className="flex-[1_1_360px] p-[22px]">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <h2 className="text-[22px] font-bold">Dernières actualités</h2>
+            <Link href="/membre/actualites" className="text-sm font-semibold text-brand-600">Tout voir</Link>
+          </div>
+          <ul className="divide-y divide-line">
+            {posts.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <div>
+                  <div className="font-semibold">{p.title}</div>
+                  <div className="text-sm text-muted">
+                    {{ EVENEMENT: "Agenda", ANNONCE: "Annonce", ARTICLE: "Article", FORMATION: "Formation" }[p.type]} · {p.visibility === "MEMBRES" ? "Membres seulement" : "Tout le monde"}
+                  </div>
                 </div>
-              </div>
-              {isNew(p.publishedAt) && <Badge tone="red">Nouveau</Badge>}
-            </li>
-          ))}
-        </ul>
-      </Card>
+                {isNew(p.publishedAt) && <Badge tone="red">Nouveau</Badge>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
 
       <SolidarityCard
         requests={aids.map((r) => ({

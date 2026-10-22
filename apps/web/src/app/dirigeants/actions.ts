@@ -6,6 +6,7 @@ import { agrementSchema } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
 import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
+import { closeOffer, decideCommissionRequest, decideOffer, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
 import { slugify, type FormState } from "@/lib/utils";
 
@@ -69,13 +70,21 @@ export async function publishPostAction(_p: FormState, f: FormData): Promise<For
   const v = await requireDirigeant();
   const title = String(f.get("title") ?? "").trim();
   const body = String(f.get("body") ?? "").trim();
-  const type = String(f.get("type")) as "ARTICLE" | "EVENEMENT" | "ANNONCE";
+  const TYPES = ["ARTICLE", "EVENEMENT", "ANNONCE", "FORMATION"] as const;
+  const type = TYPES.find((t) => t === f.get("type")) ?? "ARTICLE";
+  const dated = type === "EVENEMENT" || type === "FORMATION";
   const visibility = f.get("visibility") === "MEMBRES" ? "MEMBRES" : "PUBLIC";
   const errors: Record<string, string> = {};
   if (!title) errors.title = "Titre : champ obligatoire";
   if (!body) errors.body = "Texte : champ obligatoire";
   const eventAtRaw = String(f.get("eventAt") ?? "");
-  if (type === "EVENEMENT" && !eventAtRaw) errors.eventAt = "Date de l'événement : obligatoire";
+  const eventAt = new Date(eventAtRaw);
+  if (dated && Number.isNaN(eventAt.getTime())) errors.eventAt = "Date et heure : champ obligatoire";
+  const domain = String(f.get("domain") ?? "").trim();
+  const capacityRaw = String(f.get("capacity") ?? "").trim();
+  const capacity = capacityRaw ? Number(capacityRaw) : null;
+  if (type === "FORMATION" && !domain) errors.domain = "Domaine : champ obligatoire";
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) errors.capacity = "Nombre de places : un nombre entier positif";
   if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors };
   const slug = `${slugify(title)}-${Date.now().toString(36)}`;
   await db.insert(schema.posts).values({
@@ -85,13 +94,16 @@ export async function publishPostAction(_p: FormState, f: FormData): Promise<For
     body,
     excerpt: body.split("\n")[0]!.slice(0, 240),
     visibility,
-    eventAt: type === "EVENEMENT" ? new Date(eventAtRaw) : null,
-    location: String(f.get("location") ?? "") || null,
+    eventAt: dated ? eventAt : null,
+    location: dated ? String(f.get("location") ?? "") || null : null,
+    domain: type === "FORMATION" ? domain : null,
+    capacity: type === "FORMATION" ? capacity : null,
     authorId: v.member.id,
   });
   await audit(v.member.id, "actualite.publication", slug, { visibility });
   revalidatePath("/actualites");
   revalidatePath("/membre/actualites");
+  revalidatePath("/membre/formations");
   redirect("/dirigeants/actualites?publie=1");
 }
 
@@ -170,4 +182,46 @@ export async function decideSolidarityAction(id: string, decision: "ACCORDEE" | 
   } catch (e) { return fail(e); }
   revalidatePath("/dirigeants/solidarite");
   redirect(`/dirigeants/solidarite?ok=${encodeURIComponent(decision === "ACCORDEE" ? "Aide accordée : le membre est prévenu par e-mail." : "Demande refusée : le membre est prévenu par e-mail.")}`);
+}
+
+// ---------------------------------------------------------------------------
+// Offres des membres et demandes d'entrée en commission
+// ---------------------------------------------------------------------------
+
+export async function decideOfferAction(id: string, decision: "PUBLIEE" | "REFUSEE", _p: FormState, f: FormData): Promise<FormState> {
+  const note = String(f.get("note") ?? "").trim();
+  if (decision === "REFUSEE" && !note) return { ok: false, message: "Indiquez le motif du refus : il est envoyé au membre.", errors: { note: "Motif : obligatoire pour un refus" } };
+  try {
+    const v = await requireDirigeant();
+    const o = await decideOffer(id, decision, note, v.member.id);
+    await audit(v.member.id, decision === "PUBLIEE" ? "offre.publication" : "offre.refus", id, { title: o.title, note });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants/offres");
+  revalidatePath("/membre/formations");
+  revalidatePath("/membre");
+  redirect(`/dirigeants/offres?ok=${encodeURIComponent(decision === "PUBLIEE" ? "Offre publiée : les membres la voient." : "Offre refusée : le membre est prévenu par e-mail.")}`);
+}
+
+export async function closeOfferLeaderAction(id: string, _p: FormState): Promise<FormState> {
+  try {
+    const v = await requireDirigeant();
+    await closeOffer(id, { memberId: v.member.id, isLeader: true });
+    await audit(v.member.id, "offre.cloture", id);
+  } catch (e) { return fail(e); }
+  revalidatePath("/membre/formations");
+  revalidatePath("/membre");
+  redirect(`/dirigeants/offres?ok=${encodeURIComponent("Offre clôturée.")}`);
+}
+
+export async function decideCommissionRequestAction(id: string, accept: boolean, slug: string, _p: FormState): Promise<FormState> {
+  try {
+    const v = await commissionGuard();
+    const r = await decideCommissionRequest(id, accept, v.member.id);
+    await audit(v.member.id, accept ? "commission.demande_acceptee" : "commission.demande_refusee", r.commissionId, { memberId: r.memberId });
+  } catch (e) {
+    return e instanceof NetworkError || e instanceof CommissionError ? { ok: false, message: e.message } : fail(e);
+  }
+  revalidatePath(`/dirigeants/commissions/${slug}`);
+  revalidatePath("/membre/competences");
+  redirect(`/dirigeants/commissions/${slug}?ok=${encodeURIComponent(accept ? "Demande acceptée : le membre rejoint la commission." : "Demande refusée.")}`);
 }

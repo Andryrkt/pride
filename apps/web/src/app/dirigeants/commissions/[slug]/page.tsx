@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { asc, db, eq, schema } from "@pride/db";
+import { and, asc, db, eq, schema } from "@pride/db";
 import { DUREE_MANDAT_COMMISSION, mandateActive } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ActionForm } from "@/components/ui/action-form";
@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { getCommission } from "@/lib/commissions";
 import { canManageCommissions, requireDirigeant } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
-import { addCommissionMemberAction, designateResponsableAction, endMandateAction, removeCommissionMemberAction } from "../../actions";
+import { addCommissionMemberAction, decideCommissionRequestAction, designateResponsableAction, endMandateAction, removeCommissionMemberAction } from "../../actions";
 
 export default async function CommissionDetail({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ ok?: string }> }) {
   const { slug } = await params;
@@ -27,6 +27,11 @@ export default async function CommissionDetail({ params, searchParams }: { param
   const candidates = actifs.filter((m) => !memberIds.has(m.id));
   const team = [...c.memberships].sort((a, b) => a.member.lastName.localeCompare(b.member.lastName, "fr"));
   const history = [...c.mandates].reverse();
+  const requests = await db.query.commissionRequests.findMany({
+    where: and(eq(schema.commissionRequests.commissionId, c.id), eq(schema.commissionRequests.status, "DEMANDEE")),
+    orderBy: asc(schema.commissionRequests.createdAt),
+    with: { member: true },
+  });
 
   return (
     <>
@@ -35,6 +40,32 @@ export default async function CommissionDetail({ params, searchParams }: { param
       </PageTitle>
       {ok && <p role="status" className="rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-800">{ok}</p>}
       {!canManage && <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">La désignation des responsables et la composition des commissions sont réservées au conseil d'administration et au Coordonnateur.</p>}
+
+      {requests.length > 0 && (
+        <Card className="flex flex-col gap-3 border-sun-800/30 bg-sun-50">
+          <h2 className="text-xl font-bold">Demandes pour rejoindre la commission ({requests.length})</h2>
+          <ul className="divide-y divide-line">
+            {requests.map((q) => (
+              <li key={q.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="font-semibold">{q.member.lastName} {q.member.firstNames} <span className="font-normal text-muted">({q.member.number})</span></div>
+                  <div className="text-sm text-muted">Demande du {formatDate(q.createdAt)}{q.member.skills.length ? ` · ${q.member.skills.join(", ")}` : ""}</div>
+                </div>
+                {canManage && (
+                  <div className="flex flex-wrap gap-2">
+                    <ActionForm action={decideCommissionRequestAction.bind(null, q.id, true, c.slug)} className="flex flex-col gap-1">
+                      <SubmitButton size="sm">Accepter</SubmitButton>
+                    </ActionForm>
+                    <ActionForm action={decideCommissionRequestAction.bind(null, q.id, false, c.slug)} className="flex flex-col gap-1">
+                      <SubmitButton size="sm" variant="danger">Refuser</SubmitButton>
+                    </ActionForm>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className="flex flex-col gap-4">

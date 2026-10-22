@@ -18,6 +18,8 @@ export default async function MemberLayout({ children }: { children: React.React
         { href: "/membre", label: "Tableau de bord" },
         { href: "/membre/actualites", label: "Actualités", badge: news },
         { href: "/membre/cotisations", label: "Mes cotisations" },
+        { href: "/membre/formations", label: "Formations et offres" },
+        { href: "/membre/competences", label: "Compétences et commissions" },
         { href: "/membre/ag", label: "Assemblée générale" },
         { href: "/membre/profil", label: "Mon profil" },
       ]}

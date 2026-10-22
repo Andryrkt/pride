@@ -14,7 +14,7 @@ export default async function ProfilePage() {
         <PhotoForm current={member.photoKey ? `/api/photo/${member.id}?v=${encodeURIComponent(member.photoKey)}` : null} />
       </Card>
       <Card>
-        <ProfileForm initial={{ phone: member.phone ?? "", address: member.address ?? "", profession: member.profession ?? "", skills: member.skills.join(", ") }} />
+        <ProfileForm initial={{ phone: member.phone ?? "", address: member.address ?? "", profession: member.profession ?? "", skills: member.skills.join(", ") }} shareSkills={member.shareSkills} />
       </Card>
     </>
   );

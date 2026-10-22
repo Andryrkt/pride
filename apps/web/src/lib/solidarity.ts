@@ -1,6 +1,7 @@
 import "server-only";
-import { and, db, eq, gte, inArray, isNull, lte, or, schema } from "@pride/db";
+import { and, db, eq, schema } from "@pride/db";
 import { formatAriary, solidarityAmount, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, type SolidariteConcerne, type SolidariteEvenement } from "@pride/shared";
+import { responsableEmails } from "./commissions";
 import { env } from "./env";
 import { sendMail } from "./mail";
 import { putFile } from "./storage";
@@ -14,20 +15,6 @@ export const SOLIDARITY_STATUS = {
   ACCORDEE: ["Accordée, à verser", "green"],
   REFUSEE: ["Refusée", "red"],
 } as const;
-
-/** Trésorier et responsable(s) de la Commission sociale en fonction aujourd'hui, avec un e-mail. */
-async function solidarityContacts() {
-  const today = new Date();
-  const mandates = await db.query.mandates.findMany({
-    where: and(
-      inArray(schema.mandates.role, ["TRESORIER", "RESPONSABLE_COMMISSION"]),
-      lte(schema.mandates.startsAt, today),
-      or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, today)),
-    ),
-    with: { member: true, commission: true },
-  });
-  return mandates.filter((m) => m.role === "TRESORIER" || m.commission?.slug === "sociale").flatMap((m) => (m.member.email ? [m.member.email] : []));
-}
 
 /** `file` : pièce jointe facultative, déjà validée (type et taille) par l'action. */
 export async function declareSolidarity(member: Member, input: { kind: SolidariteEvenement; concerns: SolidariteConcerne; eventDate: Date; message?: string }, file?: File) {
@@ -56,7 +43,7 @@ export async function declareSolidarity(member: Member, input: { kind: Solidarit
     }
   }
 
-  const to = [...new Set([env.mailAssociation, ...(await solidarityContacts())])];
+  const to = [...new Set([env.mailAssociation, ...(await responsableEmails("sociale", ["TRESORIER"]))])];
   await sendMail({
     to: to.join(", "),
     subject: `Aide de solidarité : ${SOLIDARITE_EVENEMENTS[input.kind].toLowerCase()} · ${member.lastName} ${member.firstNames}`,

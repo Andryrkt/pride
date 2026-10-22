@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, db, eq, gte, isNull, or, schema } from "@pride/db";
+import { and, asc, db, eq, gte, inArray, isNull, lte, or, schema } from "@pride/db";
 import { DUREE_MANDAT_COMMISSION, mandateActive, mandateEnd } from "@pride/shared";
 
 export class CommissionError extends Error {}
@@ -80,4 +80,20 @@ export async function removeCommissionMember(commissionId: string, memberId: str
   await db
     .delete(schema.commissionMemberships)
     .where(and(eq(schema.commissionMemberships.commissionId, commissionId), eq(schema.commissionMemberships.memberId, memberId)));
+}
+
+/** E-mails des responsables en fonction aujourd'hui d'une commission (par son slug), et des autres rôles demandés (ex. Trésorier). */
+export async function responsableEmails(slug: string, extraRoles: ("TRESORIER" | "COORDONNATEUR")[] = []) {
+  const now = new Date();
+  const mandates = await db.query.mandates.findMany({
+    where: and(
+      inArray(schema.mandates.role, ["RESPONSABLE_COMMISSION", ...extraRoles]),
+      lte(schema.mandates.startsAt, now),
+      or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, now)),
+    ),
+    with: { member: true, commission: true },
+  });
+  return mandates
+    .filter((m) => m.role !== "RESPONSABLE_COMMISSION" || m.commission?.slug === slug)
+    .flatMap((m) => (m.member.email ? [m.member.email] : []));
 }

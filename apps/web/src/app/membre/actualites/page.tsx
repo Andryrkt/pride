@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { desc, db, eq, schema } from "@pride/db";
 import { PageTitle } from "@/components/site/app-shell";
 import { Badge, Card } from "@/components/ui/card";
@@ -31,6 +32,11 @@ export default async function MemberNewsPage() {
             <h2 className="text-xl font-bold">{p.title}</h2>
             <p className="text-muted">{p.excerpt}</p>
           </div>
+          {p.type === "FORMATION" && (
+            <Link href="/membre/formations" className="inline-flex min-h-11 items-center rounded-full px-5 font-semibold text-brand-600 ring-[1.5px] ring-inset ring-brand-600 hover:bg-brand-50">
+              Voir la formation
+            </Link>
+          )}
           {p.type === "EVENEMENT" && (
             <form action={toggleRegistration.bind(null, p.id)}>
               <button className={`min-h-11 rounded-full px-5 font-semibold ${registered.has(p.id) ? "bg-brand-50 text-brand-800" : "bg-brand-600 text-white"}`}>

@@ -38,6 +38,7 @@ node tests/commissions.e2e.mjs                       # site lancé, base avec d�
 node tests/inscriptions.e2e.mjs                      # « Je participe » : site lancé, base avec démo (peut être relancé)
 node tests/solidarite.e2e.mjs                        # aide de solidarité : site lancé, base avec démo (peut être relancé)
 node tests/carte.e2e.mjs                             # carte de membre (QR + PDF) : site lancé, base avec démo
+node tests/reseau.e2e.mjs                            # formations, offres, compétences, commissions : site lancé, base avec démo
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
 DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=react-server tests/paiements.check.mts
 # BASE_URL=http://localhost:3001 pour un autre port ; CHROMIUM_PATH=… pour un Chromium déjà installé
@@ -59,6 +60,13 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
   - inscription publique aux événements (« Je participe » : nom + téléphone, un numéro par événement, liste des inscrits dans Dirigeants › Actualités). Les événements « membres » restent absents de l'agenda public (choix validé). Test : `node tests/inscriptions.e2e.mjs`.
   - aide de solidarité : déclaration par le membre (tableau de bord), avec pièce jointe facultative (PDF ou image, jointe à l'e-mail et visible des dirigeants), e-mail à l'association, au Trésorier et au responsable de la Commission sociale, décision dans Dirigeants › Solidarité (CA, bureau, administrateur ; refus motivé), suivi par le membre. Une aide accordée reste « à verser » : le versement attend le visa des dépenses. Test : `node tests/solidarite.e2e.mjs`.
   - carte de membre : photo ajoutée par le membre dans « Mon profil » (recadrée en 600 × 800 et sans métadonnées grâce à `sharp`), code QR sur le tableau de bord, PDF en portrait au format carte bancaire 54 × 85,6 mm (`/api/carte`, avec `pdf-lib` et `qrcode`, photo obligatoire), page publique `/verifier/<id du membre>` avec la photo, qui indique seulement si la carte est valide et si les cotisations sont à jour. Test : `node tests/carte.e2e.mjs`.
+  - formations et offres, compétences et commissions (`apps/web/src/lib/network.ts`) :
+    - formations = publications de type `FORMATION` (domaine, nombre de places ; inscription verrouillée pour ne jamais dépasser les places) ;
+    - offres de stage, d'emploi ou de bénévolat proposées par tout membre, **publiées après validation** dans Dirigeants › Offres des membres ; « Je suis intéressé(e) » envoie les coordonnées à l'auteur, qui clôture son offre ;
+    - annuaire des compétences : seulement les membres qui l'acceptent dans leur profil (`share_skills`, non par défaut) ; « Demander un coup de main » par e-mail ;
+    - « Rejoindre » une commission = **demande** acceptée ou refusée sur la page de la commission (CA, Coordonnateur, administrateur) ;
+    - propositions d'atelier et idées de projet : e-mail à l'association et au responsable de la Commission formation et projets, gardées dans `contact_messages` ;
+    - bloc « Offres récentes » et « Prochaine formation » sur le tableau de bord. Test : `node tests/reseau.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;

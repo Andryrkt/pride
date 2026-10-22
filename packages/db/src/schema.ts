@@ -114,6 +114,8 @@ export const members = pgTable(
     address: text("address"),
     profession: text("profession"),
     skills: text("skills").array().notNull().default(sql`'{}'::text[]`),
+    /** Accord du membre pour figurer dans l'annuaire des compétences (loi n° 2014-038) : non par défaut. */
+    shareSkills: boolean("share_skills").notNull().default(false),
     category: memberCategory("category").notNull().default("ACTIF"),
     status: memberStatus("status").notNull().default("ACTIF"),
     joinedAt: date("joined_at", { mode: "date" }).notNull().defaultNow(),
@@ -394,7 +396,8 @@ export const ledgerEntries = pgTable("ledger_entries", {
 // Actualités, événements, contact, traçabilité
 // ---------------------------------------------------------------------------
 
-export const postType = pgEnum("post_type", ["ARTICLE", "EVENEMENT", "ANNONCE"]);
+/** FORMATION : session animée par des membres, avec un domaine et un nombre de places. */
+export const postType = pgEnum("post_type", ["ARTICLE", "EVENEMENT", "ANNONCE", "FORMATION"]);
 export const visibility = pgEnum("visibility", ["PUBLIC", "MEMBRES"]);
 
 export const posts = pgTable(
@@ -410,6 +413,9 @@ export const posts = pgTable(
     visibility: visibility("visibility").notNull().default("PUBLIC"),
     eventAt: timestamp("event_at", { withTimezone: true }),
     location: text("location"),
+    /** Formation : domaine (Bureautique, Langues…) et nombre de places (vide = sans limite). */
+    domain: text("domain"),
+    capacity: integer("capacity"),
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
     authorId: text("author_id").references(() => members.id),
   },
@@ -430,6 +436,86 @@ export const eventRegistrations = pgTable(
   },
   /** Inscription publique (sans compte) : un même numéro, normalisé « 0341234567 », ne s'inscrit qu'une fois. */
   (t) => [uniqueIndex("event_registrations_member_uq").on(t.postId, t.memberId), uniqueIndex("event_registrations_phone_uq").on(t.postId, t.phone)],
+);
+
+// ---------------------------------------------------------------------------
+// Offres (stages, emplois, bénévolat), coups de main, demandes d'entrée en commission
+// ---------------------------------------------------------------------------
+
+export const offerType = pgEnum("offer_type", ["STAGE", "EMPLOI", "BENEVOLAT"]);
+/** Une offre proposée par un membre n'est visible qu'une fois validée par un dirigeant. */
+export const offerStatus = pgEnum("offer_status", ["PROPOSEE", "PUBLIEE", "REFUSEE", "CLOTUREE"]);
+
+export const offers = pgTable(
+  "offers",
+  {
+    id: id(),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => members.id),
+    type: offerType("type").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    location: text("location"),
+    status: offerStatus("status").notNull().default("PROPOSEE"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionNote: text("decision_note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("offers_status_idx").on(t.status)],
+);
+
+/** « Je suis intéressé(e) » : les coordonnées du membre sont transmises à l'auteur de l'offre. */
+export const offerInterests = pgTable(
+  "offer_interests",
+  {
+    offerId: text("offer_id")
+      .notNull()
+      .references(() => offers.id, { onDelete: "cascade" }),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.offerId, t.memberId] })],
+);
+
+/** « Demander un coup de main » à un membre de l'annuaire des compétences (une fois par membre). */
+export const helpRequests = pgTable(
+  "help_requests",
+  {
+    fromId: text("from_id")
+      .notNull()
+      .references(() => members.id),
+    toId: text("to_id")
+      .notNull()
+      .references(() => members.id),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.fromId, t.toId] })],
+);
+
+/** Demande d'entrée dans une commission, acceptée ou refusée par le CA, le Coordonnateur ou l'administrateur. */
+export const commissionRequestStatus = pgEnum("commission_request_status", ["DEMANDEE", "ACCEPTEE", "REFUSEE"]);
+
+export const commissionRequests = pgTable(
+  "commission_requests",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    commissionId: text("commission_id")
+      .notNull()
+      .references(() => commissions.id, { onDelete: "cascade" }),
+    status: commissionRequestStatus("status").notNull().default("DEMANDEE"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  // Une seule demande en attente par membre et par commission.
+  (t) => [uniqueIndex("commission_requests_pending_uq").on(t.memberId, t.commissionId).where(sql`status = 'DEMANDEE'`)],
 );
 
 export const contactMessages = pgTable("contact_messages", {
@@ -568,6 +654,21 @@ export const assemblyAttendancesRelations = relations(assemblyAttendances, ({ on
 
 export const solidarityRequestsRelations = relations(solidarityRequests, ({ one }) => ({
   member: one(members, { fields: [solidarityRequests.memberId], references: [members.id] }),
+}));
+
+export const offersRelations = relations(offers, ({ one, many }) => ({
+  author: one(members, { fields: [offers.authorId], references: [members.id] }),
+  interests: many(offerInterests),
+}));
+
+export const offerInterestsRelations = relations(offerInterests, ({ one }) => ({
+  offer: one(offers, { fields: [offerInterests.offerId], references: [offers.id] }),
+  member: one(members, { fields: [offerInterests.memberId], references: [members.id] }),
+}));
+
+export const commissionRequestsRelations = relations(commissionRequests, ({ one }) => ({
+  member: one(members, { fields: [commissionRequests.memberId], references: [members.id] }),
+  commission: one(commissions, { fields: [commissionRequests.commissionId], references: [commissions.id] }),
 }));
 
 export const resolutionsRelations = relations(resolutions, ({ one }) => ({

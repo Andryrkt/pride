@@ -1,12 +1,13 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, db, eq, schema } from "@pride/db";
-import { MAX_UPLOAD_BYTES, paymentRequestSchema, profileSchema, solidarityRequestSchema } from "@pride/shared";
+import { and, count, db, eq, schema } from "@pride/db";
+import { MAX_UPLOAD_BYTES, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
 import { PaymentError, payDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { validateFile } from "@/lib/applications";
 import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
+import { askHelp, closeOffer, expressInterest, NetworkError, proposeOffer, requestCommission, sendProposal } from "@/lib/network";
 import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import type { FormState } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
     address: String(formData.get("address") ?? ""),
     profession: String(formData.get("profession") ?? "") || undefined,
     skills: String(formData.get("skills") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+    shareSkills: formData.get("shareSkills") === "on",
   };
   const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) {
@@ -49,14 +51,27 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
   return { ok: true, message: "Profil enregistré." };
 }
 
+/** Inscription (ou désinscription) à un événement ou une formation ; une formation complète refuse les nouvelles inscriptions. */
 export async function toggleRegistration(postId: string) {
   const v = await requireMember();
-  const existing = await db.query.eventRegistrations.findFirst({
-    where: and(eq(schema.eventRegistrations.postId, postId), eq(schema.eventRegistrations.memberId, v.member.id)),
+  await db.transaction(async (tx) => {
+    // Verrou sur la publication : deux inscriptions simultanées ne dépassent pas le nombre de places.
+    const [post] = await tx.select().from(schema.posts).where(eq(schema.posts.id, postId)).for("update");
+    if (!post) return;
+    const mine = and(eq(schema.eventRegistrations.postId, postId), eq(schema.eventRegistrations.memberId, v.member.id));
+    const [existing] = await tx.select().from(schema.eventRegistrations).where(mine);
+    if (existing) {
+      await tx.delete(schema.eventRegistrations).where(eq(schema.eventRegistrations.id, existing.id));
+      return;
+    }
+    if (post.capacity != null) {
+      const [{ n }] = await tx.select({ n: count() }).from(schema.eventRegistrations).where(eq(schema.eventRegistrations.postId, postId));
+      if (n >= post.capacity) return;
+    }
+    await tx.insert(schema.eventRegistrations).values({ postId, memberId: v.member.id });
   });
-  if (existing) await db.delete(schema.eventRegistrations).where(eq(schema.eventRegistrations.id, existing.id));
-  else await db.insert(schema.eventRegistrations).values({ postId, memberId: v.member.id });
   revalidatePath("/membre/actualites");
+  revalidatePath("/membre/formations");
 }
 
 export async function declareSolidarityAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -97,4 +112,65 @@ export async function updatePhoto(_prev: FormState, formData: FormData): Promise
   }
   revalidatePath("/membre", "layout");
   return { ok: true, message: "Photo enregistrée. Elle apparaît sur votre carte de membre." };
+}
+
+// ---------------------------------------------------------------------------
+// Réseau : offres, coups de main, commissions, propositions
+// ---------------------------------------------------------------------------
+
+async function network(run: () => Promise<unknown>, ok: string, paths: string[]): Promise<FormState> {
+  try {
+    await run();
+  } catch (e) {
+    if (e instanceof NetworkError) return { ok: false, message: e.message };
+    throw e;
+  }
+  for (const p of paths) revalidatePath(p);
+  return { ok: true, message: ok };
+}
+
+const fieldErrors = (issues: { path: (string | number)[]; message: string }[]) => {
+  const errors: Record<string, string> = {};
+  for (const i of issues) errors[String(i.path[0])] ??= i.message;
+  return errors;
+};
+
+export async function proposeOfferAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  const data = Object.fromEntries(["type", "title", "description", "location"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const parsed = offerSchema.safeParse({ ...data, location: data.location || undefined });
+  if (!parsed.success) return { ok: false, message: "Vérifiez les champs indiqués.", errors: fieldErrors(parsed.error.issues), data };
+  return network(() => proposeOffer(v.member, parsed.data), "Merci ! Votre offre sera visible dès qu'un dirigeant l'aura validée.", ["/membre/formations"]);
+}
+
+export async function interestAction(offerId: string, _prev: FormState): Promise<FormState> {
+  const v = await requireMember();
+  return network(() => expressInterest(offerId, v.member), "Vos coordonnées ont été transmises à l'auteur de l'offre.", ["/membre/formations"]);
+}
+
+export async function closeOfferAction(offerId: string, _prev: FormState): Promise<FormState> {
+  const v = await requireMember();
+  return network(() => closeOffer(offerId, { memberId: v.member.id, isLeader: v.isDirigeant }), "Offre clôturée.", ["/membre/formations", "/membre"]);
+}
+
+export async function askHelpAction(toId: string, _prev: FormState): Promise<FormState> {
+  const v = await requireMember();
+  return network(() => askHelp(v.member, toId), "Demande envoyée.", ["/membre/competences"]);
+}
+
+export async function requestCommissionAction(commissionId: string, _prev: FormState): Promise<FormState> {
+  const v = await requireMember();
+  return network(() => requestCommission(v.member, commissionId), "Demande envoyée.", ["/membre/competences"]);
+}
+
+export async function proposalAction(kind: "ATELIER" | "PROJET", _prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  const data = { title: String(formData.get("title") ?? ""), details: String(formData.get("details") ?? "") };
+  const parsed = proposalSchema.safeParse({ kind, ...data });
+  if (!parsed.success) return { ok: false, message: "Vérifiez les champs indiqués.", errors: fieldErrors(parsed.error.issues), data };
+  return network(
+    () => sendProposal(v.member, parsed.data),
+    kind === "ATELIER" ? "Merci ! Proposition transmise à la Commission formation et projets." : "Idée transmise à la Commission formation et projets, puis au conseil d'administration pour validation.",
+    [],
+  );
 }

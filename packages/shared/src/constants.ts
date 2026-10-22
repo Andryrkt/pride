@@ -14,6 +14,10 @@ export type MemberCategory = keyof typeof TARIFS;
 /** Règlement intérieur, art. 6 : aide versée lors d'un événement heureux ou douloureux. */
 export const AIDE_SOLIDARITE = { membre: 50_000, famille: 25_000 } as const;
 
+/** Offres partagées entre membres. */
+export const OFFER_TYPES = { STAGE: "Stage", EMPLOI: "Emploi", BENEVOLAT: "Bénévolat" } as const;
+export type OfferType = keyof typeof OFFER_TYPES;
+
 /** Événements ouvrant droit à l'aide de solidarité (heureux ou douloureux). */
 export const SOLIDARITE_EVENEMENTS = { MARIAGE: "Mariage", NAISSANCE: "Naissance", MALADIE: "Maladie ou hospitalisation", DECES: "Décès" } as const;
 export type SolidariteEvenement = keyof typeof SOLIDARITE_EVENEMENTS;
