@@ -40,7 +40,7 @@ export function PayForm({ dues, defaultPhone }: { dues: { id: string; label: str
       <SubmitButton pendingLabel="Paiement en cours…" className="self-start" disabled={total === 0}>
         Payer {formatAriary(total)}
       </SubmitButton>
-      <p className="text-[13px] text-muted">Vous recevrez une demande de validation sur votre téléphone, puis votre reçu par SMS.</p>
+      <p className="text-[13px] text-muted">Vous recevrez une demande de validation sur votre téléphone. Le reçu s'affiche ensuite ici, dans « Paiements et reçus ».</p>
     </form>
   );
 }

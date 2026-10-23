@@ -14,7 +14,7 @@ const DEMO = (process.env.SEED_DEMO ?? (process.env.NODE_ENV === "production" ? 
 const AG_DATE = new Date("2026-09-27");
 const plusYears = (d: Date, n: number) => new Date(d.getFullYear() + n, d.getMonth(), d.getDate());
 
-async function upsertMember(input: { lastName: string; firstNames: string; isFounder?: boolean; email?: string; phone?: string; joinedAt?: Date }) {
+async function upsertMember(input: { lastName: string; firstNames: string; isFounder?: boolean; email?: string; phone?: string; address?: string; joinedAt?: Date }) {
   const existing = await db.query.members.findFirst({
     where: and(eq(s.members.lastName, input.lastName), eq(s.members.firstNames, input.firstNames)),
   });
@@ -138,7 +138,7 @@ async function main() {
     await addMandate(admin.id, "ADMIN_TECHNIQUE", new Date("2026-01-01"), null);
     await createLogin(admin.id, "Administrateur Démo", "admin@pride.local", "PrideDemo2026!");
 
-    const fanja = await upsertMember({ lastName: "RASOANAIVO", firstNames: "Fanja (démo)", phone: "034 12 345 67", joinedAt: new Date("2026-03-01") });
+    const fanja = await upsertMember({ lastName: "RASOANAIVO", firstNames: "Fanja (démo)", phone: "034 12 345 67", address: "Analamahitsy, Antananarivo (fictif)", joinedAt: new Date("2026-03-01") });
     await createLogin(fanja.id, "Fanja (démo)", "membre@pride.local", "PrideDemo2026!");
     // Cotisations de mars à septembre payées, octobre à payer
     const now = new Date();
@@ -151,17 +151,52 @@ async function main() {
     }
     await db
       .insert(s.posts)
-      .values({
-        slug: "exemple-formation-ia",
-        type: "EVENEMENT",
-        title: "Intelligence artificielle : les bases (exemple)",
-        excerpt: "Formation réservée aux membres. Date donnée à titre d'exemple.",
-        body: "Comprendre et utiliser les outils d'IA pour gagner en efficacité.",
-        visibility: "MEMBRES",
-        eventAt: new Date(now.getFullYear(), now.getMonth() + 1, 7, 9),
-        location: "CLT Tsiadana, Antananarivo",
-      })
+      .values([
+        {
+          slug: "exemple-formation-ia",
+          type: "FORMATION",
+          title: "Intelligence artificielle : les bases (exemple)",
+          excerpt: "Formation réservée aux membres. Date donnée à titre d'exemple.",
+          body: "Comprendre et utiliser les outils d'IA pour gagner en efficacité.",
+          visibility: "MEMBRES",
+          eventAt: new Date(now.getFullYear(), now.getMonth() + 1, 7, 9),
+          location: "CLT Tsiadana, Antananarivo",
+          domain: "Intelligence artificielle",
+          capacity: 20,
+        },
+        {
+          slug: "exemple-formation-excel",
+          type: "FORMATION",
+          title: "Excel : tableaux et budget personnel (exemple)",
+          excerpt: "Apportez votre ordinateur si possible. Date donnée à titre d'exemple.",
+          body: "Construire un tableau de budget personnel pas à pas.",
+          visibility: "MEMBRES",
+          eventAt: new Date(now.getFullYear(), now.getMonth() + 1, 14, 14),
+          location: "CLT Tsiadana, Antananarivo",
+          domain: "Bureautique",
+          capacity: 12,
+        },
+      ])
       .onConflictDoNothing({ target: s.posts.slug });
+
+    // Annuaire des compétences : l'administrateur de démo y figure (avec son accord fictif).
+    await db.update(s.members).set({ profession: "Développeur web (fictif)", skills: ["Sites web", "Excel"], shareSkills: true }).where(eq(s.members.id, admin.id));
+
+    // Offres publiées et consultation ouverte, une seule fois même si le seed est relancé
+    if (!(await db.query.offers.findFirst({ where: eq(s.offers.authorId, admin.id) }))) {
+      await db.insert(s.offers).values([
+        { authorId: admin.id, type: "STAGE", title: "Stage assistant comptable (exemple fictif)", description: "3 mois · niveau Licence en gestion.", location: "Antananarivo", status: "PUBLIEE" },
+        { authorId: admin.id, type: "BENEVOLAT", title: "Animateur(trice) de formation bureautique (exemple fictif)", description: "2 samedis par mois.", location: "CLT Tsiadana", status: "PUBLIEE" },
+      ]);
+    }
+    if (!(await db.query.consultations.findFirst())) {
+      await db.insert(s.consultations).values({
+        question: "Quel thème de formation prioritaire pour 2027 ? (exemple)",
+        options: ["Intelligence artificielle", "Entrepreneuriat et création d'activité", "Langues (anglais, français)", "Leadership et art oratoire"],
+        closesAt: new Date(now.getTime() + 21 * 86_400_000),
+        createdBy: admin.id,
+      });
+    }
     console.log("  admin@pride.local / PrideDemo2026!   (espace dirigeants)");
     console.log("  membre@pride.local / PrideDemo2026!  (espace membres)");
   }

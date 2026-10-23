@@ -26,6 +26,7 @@ export function AppShell({ space, dark, nav, userName, initials, extra, children
           ))}
           <hr className="my-2 border-line" />
           {extra?.map((n) => <NavLink key={n.href} {...n} />)}
+          <Link href="/aide" className="rounded-xl px-3.5 py-2.5 font-medium text-[#2b3832] hover:bg-[#e9eee8]">Aide</Link>
           <Link href="/" className="rounded-xl px-3.5 py-2.5 font-medium text-[#2b3832] hover:bg-[#e9eee8]">Retour au site</Link>
           <SignOutButton />
         </nav>

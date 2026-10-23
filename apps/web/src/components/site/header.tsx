@@ -20,7 +20,7 @@ export function SiteHeader() {
   const path = usePathname();
   const isActive = (href: string) => (href === "/" ? path === "/" : !href.includes("#") && path.startsWith(href));
   return (
-    <header className="border-b border-line bg-white">
+    <header className="border-b border-line bg-white print:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3 sm:px-6">
         <Link href="/" aria-label="PRIDe, accueil" className="shrink-0">
           <Image src="/images/logo.png" alt="PRIDe" width={41} height={58} priority className="h-14 w-auto" />

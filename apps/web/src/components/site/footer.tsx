@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="bg-brand-900 text-brand-100">
+    <footer className="bg-brand-900 text-brand-100 print:hidden">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 pt-14 pb-8 sm:px-6 md:grid-cols-3">
         <div className="flex flex-col gap-3">
           <Image src="/images/logo-blanc.png" alt="PRIDe" width={63} height={90} className="h-22.5 w-auto self-start" />
@@ -25,6 +25,7 @@ export function SiteFooter() {
           <Link href="/realisations" className="hover:text-white">Nos réalisations</Link>
           <Link href="/adhesion" className="hover:text-white">Devenir membre</Link>
           <Link href="/membre" className="hover:text-white">Espace membres</Link>
+          <Link href="/aide" className="hover:text-white">Aide : guide des membres</Link>
         </div>
       </div>
       <div className="mx-auto max-w-6xl px-4 pb-8 text-[13px] text-[#9fbfae] sm:px-6">© PRIDe {new Date().getFullYear()}</div>

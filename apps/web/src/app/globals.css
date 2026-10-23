@@ -29,3 +29,9 @@
   h1, h2, h3, h4 { @apply font-display tracking-tight text-[#0e1a14]; }
   :focus-visible { outline: 3px solid #9fd8b8; outline-offset: 2px; }
 }
+
+/* Impression (guide, procès-verbaux) : marges de page, fond blanc */
+@page { margin: 15mm; }
+@media print {
+  body { background: white; }
+}

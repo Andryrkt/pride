@@ -21,7 +21,7 @@ export default async function CotisationsPage({ searchParams }: { searchParams: 
   return (
     <>
       <PageTitle title="Mes cotisations" sub="La cotisation versée reste acquise à l'association (règlement intérieur, art. 2)." />
-      {sp.recu && <p role="status" className="rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-800">Paiement reçu. Reçu n° {sp.recu}, envoyé par SMS.</p>}
+      {sp.recu && <p role="status" className="rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-800">Paiement reçu. Reçu n° {sp.recu}, à retrouver dans « Paiements et reçus ».</p>}
       {sp.attente && <p role="status" className="rounded-xl bg-sun-50 px-4 py-3 font-semibold text-sun-800">Demande envoyée : validez le paiement sur votre téléphone.</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card><div className="text-xs font-bold uppercase tracking-wider text-muted">Payé cette année</div><div className="font-display text-3xl font-extrabold">{formatAriary(paidThisYear)}</div></Card>
