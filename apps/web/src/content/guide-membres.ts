@@ -3,8 +3,7 @@
  * Pour modifier le guide : changer les textes ci-dessous, sans toucher aux pages.
  * Les captures d'écran (dossier public/aide/membres) se régénèrent avec : node tests/captures-aide.mjs
  */
-export type GuideStep = { text: string; image?: string };
-export type GuidePage = { slug: string; title: string; summary: string; steps: GuideStep[]; tips?: string[]; links?: { label: string; href: string }[] };
+import type { GuidePage } from "./guides";
 
 export const GUIDE_MEMBRES: GuidePage[] = [
   {

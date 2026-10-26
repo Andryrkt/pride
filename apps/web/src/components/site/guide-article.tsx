@@ -1,14 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
-import type { GuidePage } from "@/content/guide-membres";
+import type { GuideKey, GuidePage } from "@/content/guides";
 
 /** Une page du guide : étapes numérotées (avec capture d'écran), conseils, liens vers l'application. */
-export function GuideArticle({ page, n, newSheet }: { page: GuidePage; n: number; newSheet?: boolean }) {
+export function GuideArticle({ guide, label, page, n, newSheet }: { guide: GuideKey; label: string; page: GuidePage; n: number; newSheet?: boolean }) {
   return (
     <article className={newSheet ? "flex flex-col gap-6 break-before-page" : "flex flex-col gap-6"}>
       <header className="flex flex-col gap-2">
-        <span className="text-xs font-bold tracking-[0.14em] text-brand-600 uppercase">Guide des membres · {n}</span>
+        <span className="text-xs font-bold tracking-[0.14em] text-brand-600 uppercase">{label} · {n}</span>
         <h1 className="text-3xl font-extrabold sm:text-4xl">{page.title}</h1>
         <p className="text-lg text-[#3a4740]">{page.summary}</p>
       </header>
@@ -20,7 +20,7 @@ export function GuideArticle({ page, n, newSheet }: { page: GuidePage; n: number
               <p className="text-[17px]">{s.text}</p>
               {s.image && (
                 <Image
-                  src={`/aide/membres/${s.image}`}
+                  src={`/aide/${guide}/${s.image}`}
                   alt={`Capture d'écran : ${s.text}`}
                   width={1280}
                   height={800}

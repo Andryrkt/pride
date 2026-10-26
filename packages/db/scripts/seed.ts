@@ -197,6 +197,30 @@ async function main() {
         createdBy: admin.id,
       });
     }
+    // Demandes à traiter côté dirigeants (fictives), une seule fois même si le seed est relancé
+    if (!(await db.query.applications.findFirst())) {
+      await db.insert(s.applications).values({
+        reference: `C-${now.getFullYear()}-0001`,
+        lastName: "RAKOTO",
+        firstNames: "Exemple (candidat fictif)",
+        birthDate: new Date("1998-04-12"),
+        phone: "034 00 000 01",
+        address: "Ambohijatovo, Antananarivo (fictif)",
+        profession: "Comptable",
+        skills: "Comptabilité, Excel",
+        expectations: "Me former et aider les jeunes du quartier.",
+        category: "ACTIF",
+        sponsorship: "ENTRETIEN",
+        status: "ENTRETIEN",
+      });
+    }
+    if (!(await db.query.solidarityRequests.findFirst())) {
+      await db.insert(s.solidarityRequests).values({ memberId: fanja.id, kind: "NAISSANCE", concerns: "MEMBRE", eventDate: new Date(now.getTime() - 5 * 86_400_000), amount: 50_000, message: "Naissance de notre fille (exemple fictif)." });
+    }
+    if (!(await db.query.conversations.findFirst({ where: eq(s.conversations.recipient, "TRESORIER") }))) {
+      const [conv] = await db.insert(s.conversations).values({ memberId: fanja.id, recipient: "TRESORIER" }).returning();
+      await db.insert(s.messages).values({ conversationId: conv!.id, sender: "MEMBRE", authorId: fanja.id, body: "Question transmise par l'assistant : « Je n'ai pas reçu le reçu de ma cotisation de juin (exemple fictif). »" });
+    }
     console.log("  admin@pride.local / PrideDemo2026!   (espace dirigeants)");
     console.log("  membre@pride.local / PrideDemo2026!  (espace membres)");
   }

@@ -25,7 +25,7 @@ export function SiteFooter() {
           <Link href="/realisations" className="hover:text-white">Nos réalisations</Link>
           <Link href="/adhesion" className="hover:text-white">Devenir membre</Link>
           <Link href="/membre" className="hover:text-white">Espace membres</Link>
-          <Link href="/aide" className="hover:text-white">Aide : guide des membres</Link>
+          <Link href="/aide" className="hover:text-white">Aide et questions fréquentes</Link>
         </div>
       </div>
       <div className="mx-auto max-w-6xl px-4 pb-8 text-[13px] text-[#9fbfae] sm:px-6">© PRIDe {new Date().getFullYear()}</div>
