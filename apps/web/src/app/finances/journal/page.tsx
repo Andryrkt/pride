@@ -4,7 +4,7 @@ import { PageTitle } from "@/components/site/app-shell";
 import { ActionForm } from "@/components/ui/action-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
-import { Input, RequiredLegend, Select } from "@/components/ui/field";
+import { Input, RequiredLegend } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { journal } from "@/lib/finances";
 import { requireFinances } from "@/lib/session";
@@ -41,22 +41,20 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
 
       {v.canRecord && (
         <Card>
-          <h2 className="mb-3 text-xl font-bold">Nouvelle écriture</h2>
+          <h2 className="mb-3 text-xl font-bold">Nouvelle recette</h2>
           <ActionForm action={addEntryAction}>
             <RequiredLegend />
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_180px_1fr_160px_160px]">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_1fr_160px_160px]">
               <Input label="Date" name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
-              <Select label="Recette ou dépense" name="direction" required defaultValue="">
-                <option value="">Choisissez…</option>
-                <option value="RECETTE">Recette</option>
-                <option value="DEPENSE">Dépense</option>
-              </Select>
-              <Input label="Libellé" name="label" required placeholder="Ex. : Location de salle, formation art oratoire" />
+              <Input label="Libellé" name="label" required placeholder="Ex. : Don, participation à une formation" />
               <Input label="Montant (Ar)" name="amount" type="number" min={1} step={1} required />
-              <Input label="N° de pièce" name="pieceRef" placeholder="PJ-0185" />
+              <Input label="N° de pièce" name="pieceRef" placeholder="REC-0012" />
             </div>
-            <SubmitButton className="self-start">Enregistrer l'écriture</SubmitButton>
-            <p className="text-sm text-muted">Les cotisations payées en ligne ou en espèces s'inscrivent automatiquement : ne les saisissez pas ici.</p>
+            <SubmitButton className="self-start">Enregistrer la recette</SubmitButton>
+            <p className="text-sm text-muted">
+              Les cotisations payées en ligne ou en espèces s'inscrivent automatiquement : ne les saisissez pas ici. Les dépenses passent par une pièce signée et visée :{" "}
+              <Link href="/finances/depenses" className="font-semibold text-brand-600 hover:underline">Dépenses à viser</Link>.
+            </p>
           </ActionForm>
         </Card>
       )}

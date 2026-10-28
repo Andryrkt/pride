@@ -85,6 +85,13 @@
       "when": 1793173455481,
       "tag": "0011_comptable",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793184105942,
+      "tag": "0012_visa_depenses",
+      "breakpoints": true
     }
   ]
 }

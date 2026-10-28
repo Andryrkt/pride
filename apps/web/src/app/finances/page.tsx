@@ -1,22 +1,17 @@
 import { desc, db, schema } from "@pride/db";
-import { formatAriary, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "@pride/shared";
+import { formatAriary } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
-import { ActionForm } from "@/components/ui/action-form";
 import { ButtonLink } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/field";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { financeSummary } from "@/lib/finances";
+import { Badge, Card } from "@/components/ui/card";
+import { EXPENSE_STATUS, expenseList, financeSummary, pieceRef } from "@/lib/finances";
 import { requireFinances } from "@/lib/session";
-import { formatDate } from "@/lib/utils";
-import { paySolidarityAction } from "./actions";
 
 const monthName = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 
 export default async function FinanceDashboard({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
-  const v = await requireFinances();
-  const [s, last] = await Promise.all([financeSummary(), db.query.ledgerEntries.findMany({ orderBy: desc(schema.ledgerEntries.number), limit: 5 })]);
+  await requireFinances();
+  const [s, ex, last] = await Promise.all([financeSummary(), expenseList(), db.query.ledgerEntries.findMany({ orderBy: desc(schema.ledgerEntries.number), limit: 5 })]);
   const month = monthName.format(new Date());
   const kpis = [
     ["Solde du journal", formatAriary(s.solde), "recettes moins dépenses, depuis le début", s.solde < 0 ? "text-flame-600" : ""],
@@ -41,24 +36,21 @@ export default async function FinanceDashboard({ searchParams }: { searchParams:
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className="flex flex-col gap-3">
-          <h2 className="text-xl font-bold">Aides de solidarité à verser ({s.aidesAVerser.length})</h2>
-          <p className="text-sm text-muted">Accordées par les dirigeants. Statuts, art. 22 : la pièce de dépense est signée par le Trésorier et visée par le conseil d'administration.</p>
-          {s.aidesAVerser.length === 0 && <p className="text-muted">Aucune aide en attente de versement.</p>}
-          {s.aidesAVerser.map((a) => (
-            <div key={a.id} className="flex flex-col gap-2 rounded-xl border border-line p-3">
-              <div className="flex flex-wrap justify-between gap-2">
-                <span><strong>{a.member.lastName} {a.member.firstNames}</strong> · {SOLIDARITE_EVENEMENTS[a.kind]} ({SOLIDARITE_CONCERNE[a.concerns].toLowerCase()})</span>
-                <strong>{formatAriary(a.amount)}</strong>
-              </div>
-              <span className="text-sm text-muted">Accordée le {formatDate(a.decidedAt)}{a.member.phone ? ` · ${a.member.phone}` : ""}</span>
-              {v.canRecord && (
-                <ActionForm action={paySolidarityAction.bind(null, a.id)} className="flex flex-wrap items-end gap-2">
-                  <Input label="N° de pièce (facultatif)" name="pieceRef" id={`piece-${a.id}`} placeholder="PJ-0190" className="flex-[1_1_160px]" />
-                  <SubmitButton size="sm">Enregistrer le versement</SubmitButton>
-                </ActionForm>
-              )}
-            </div>
-          ))}
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">Dépenses en attente ({ex.open.length + ex.aidsWithoutPiece.length})</h2>
+            <ButtonLink href="/finances/depenses" variant="ghost" size="sm">Tout voir</ButtonLink>
+          </div>
+          <p className="text-sm text-muted">Statuts, art. 22 : toute pièce de dépense est signée par le Trésorier et visée par le conseil d'administration avant d'être payée.</p>
+          {ex.open.length + ex.aidsWithoutPiece.length === 0 && <p className="text-muted">Aucune dépense en attente.</p>}
+          {ex.aidsWithoutPiece.length > 0 && <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">{ex.aidsWithoutPiece.length} aide(s) de solidarité accordée(s) : pièce de dépense à préparer.</p>}
+          <ul className="divide-y divide-line text-[14.5px]">
+            {ex.open.map((e) => (
+              <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0">{pieceRef(e.number)} · {e.label}</span>
+                <span className="flex items-center gap-2"><Badge tone={EXPENSE_STATUS[e.status][1]}>{EXPENSE_STATUS[e.status][0]}</Badge><strong>{formatAriary(e.amount)}</strong></span>
+              </li>
+            ))}
+          </ul>
         </Card>
 
         <div className="flex flex-col gap-5">

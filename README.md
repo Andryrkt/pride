@@ -187,8 +187,7 @@ Le test des commissions (`node tests/commissions.e2e.mjs`, base avec démo, peut
   - AG et procès-verbaux : convocations, quorum, votes, génération du PV ;
   - sections régionales : répartition 90/10 ;
   - envoi groupé de SMS et d'e-mails ;
-  - délégation de pouvoirs ;
-  - visa des dépenses (art. 22).
+  - délégation de pouvoirs.
 - Assistant de messagerie dans l'espace membres.
 - Rappels automatiques de cotisation (tâches planifiées avec pg-boss).
 - Reçus et cartes de membre en PDF (@react-pdf/renderer).

@@ -72,10 +72,14 @@ export function canRecordFinances(v: NonNullable<Viewer>) {
   return v.isComptable || v.isAdmin || v.roles.includes("TRESORIER");
 }
 
+/** Statuts, art. 22 : le Trésorier signe les pièces de dépense, un membre du CA les vise ; l'administrateur supplée (poste vacant). */
+export const canSignExpenses = (v: NonNullable<Viewer>) => v.isAdmin || v.roles.includes("TRESORIER");
+export const canApproveExpenses = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin;
+
 export async function requireFinances() {
   const v = await requireMember();
   if (!v.isDirigeant && !v.isComptable) redirect("/membre");
-  return { ...v, canRecord: canRecordFinances(v) };
+  return { ...v, canRecord: canRecordFinances(v), canSign: canSignExpenses(v), canApprove: canApproveExpenses(v) };
 }
 
 /** Décision sur les aides de solidarité : CA, bureau exécutif (dont le Trésorier), administrateur. */

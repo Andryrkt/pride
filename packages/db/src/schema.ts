@@ -685,6 +685,37 @@ export const solidarityRequests = pgTable(
   (t) => [uniqueIndex("solidarity_requests_uq").on(t.memberId, t.kind, t.concerns, t.eventDate), index("solidarity_requests_status_idx").on(t.status)],
 );
 
+/**
+ * Pièces de dépense. Statuts, art. 22 : signée par le Trésorier, visée par le CA, puis payée (écriture au journal).
+ * Une pièce rejetée reste dans l'historique ; une nouvelle pièce peut être préparée pour la même aide.
+ */
+export const expenseStatus = pgEnum("expense_status", ["A_SIGNER", "A_VISER", "A_PAYER", "PAYEE", "REJETEE"]);
+
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: id(),
+    number: serial("number").notNull().unique(),
+    label: text("label").notNull(),
+    amount: integer("amount").notNull(),
+    solidarityRequestId: text("solidarity_request_id").references(() => solidarityRequests.id),
+    status: expenseStatus("status").notNull().default("A_SIGNER"),
+    createdBy: text("created_by").notNull(),
+    signedBy: text("signed_by"),
+    signedAt: timestamp("signed_at", { withTimezone: true }),
+    visaBy: text("visa_by"),
+    visaAt: timestamp("visa_at", { withTimezone: true }),
+    rejectedBy: text("rejected_by"),
+    rejectReason: text("reject_reason"),
+    ledgerEntryId: text("ledger_entry_id")
+      .unique()
+      .references(() => ledgerEntries.id),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("expenses_aid_uq").on(t.solidarityRequestId).where(sql`status <> 'REJETEE'`), index("expenses_status_idx").on(t.status)],
+);
+
 export const auditLogs = pgTable("audit_logs", {
   id: id(),
   actorId: text("actor_id"),
@@ -778,6 +809,13 @@ export const assemblyAttendancesRelations = relations(assemblyAttendances, ({ on
 
 export const solidarityRequestsRelations = relations(solidarityRequests, ({ one }) => ({
   member: one(members, { fields: [solidarityRequests.memberId], references: [members.id] }),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  aid: one(solidarityRequests, { fields: [expenses.solidarityRequestId], references: [solidarityRequests.id] }),
+  creator: one(members, { fields: [expenses.createdBy], references: [members.id], relationName: "expense_creator" }),
+  signer: one(members, { fields: [expenses.signedBy], references: [members.id], relationName: "expense_signer" }),
+  approver: one(members, { fields: [expenses.visaBy], references: [members.id], relationName: "expense_approver" }),
 }));
 
 export const offersRelations = relations(offers, ({ one, many }) => ({

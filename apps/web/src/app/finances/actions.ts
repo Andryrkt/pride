@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PaymentError, payCash } from "@/lib/dues";
-import { addEntry, correctEntry, FinanceError, paySolidarity } from "@/lib/finances";
+import { addEntry, approveExpense, correctEntry, FinanceError, payExpense, pieceRef, prepareAidExpense, prepareExpense, rejectExpense, signExpense } from "@/lib/finances";
 import { audit, requireFinances } from "@/lib/session";
 import type { FormState } from "@/lib/utils";
 
@@ -33,19 +33,18 @@ async function run(job: () => Promise<string>): Promise<FormState> {
 }
 
 export async function addEntryAction(_p: FormState, f: FormData): Promise<FormState> {
-  const data = Object.fromEntries(["date", "label", "direction", "amount", "pieceRef"].map((k) => [k, String(f.get(k) ?? "").trim()]));
+  const data = Object.fromEntries(["date", "label", "amount", "pieceRef"].map((k) => [k, String(f.get(k) ?? "").trim()]));
   const errors: Record<string, string> = {};
   const date = new Date(data.date!);
   if (Number.isNaN(date.getTime())) errors.date = "Date : champ obligatoire";
   if (!data.label) errors.label = "Libellé : champ obligatoire";
-  if (data.direction !== "RECETTE" && data.direction !== "DEPENSE") errors.direction = "Recette ou dépense : champ obligatoire";
   if (!data.amount) errors.amount = "Montant : champ obligatoire";
   if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
   const r = await run(async () => {
     const v = await recorder();
-    const e = await addEntry({ date, label: data.label!.slice(0, 200), direction: data.direction as "RECETTE" | "DEPENSE", amount: Number(data.amount), pieceRef: data.pieceRef!.slice(0, 40) }, v.member.id);
+    const e = await addEntry({ date, label: data.label!.slice(0, 200), amount: Number(data.amount), pieceRef: data.pieceRef!.slice(0, 40) }, v.member.id);
     await audit(v.member.id, "finances.ecriture", e.id, { number: e.number, direction: e.direction, amount: e.amount, label: e.label });
-    return `Écriture n° ${e.number} enregistrée.`;
+    return `Recette enregistrée (écriture n° ${e.number}).`;
   });
   return r.ok ? r : { ...r, data };
 }
@@ -72,11 +71,71 @@ export async function payCashAction(memberId: string, _p: FormState, f: FormData
   });
 }
 
-export async function paySolidarityAction(requestId: string, _p: FormState, f: FormData): Promise<FormState> {
-  return runThenShow("/finances", async () => {
+/** Garde d'une étape du visa : `allowed` dit qui peut la franchir. */
+async function step(allowed: (v: Awaited<ReturnType<typeof requireFinances>>) => boolean, who: string) {
+  const v = await requireFinances();
+  if (!allowed(v)) throw new FinanceError(`Réservé ${who}.`);
+  return v;
+}
+
+export async function prepareExpenseAction(_p: FormState, f: FormData): Promise<FormState> {
+  const data = { label: String(f.get("label") ?? "").trim(), amount: String(f.get("amount") ?? "").trim() };
+  const errors: Record<string, string> = {};
+  if (!data.label) errors.label = "Objet de la dépense : champ obligatoire";
+  if (!data.amount) errors.amount = "Montant : champ obligatoire";
+  if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
+  const r = await runThenShow("/finances/depenses", async () => {
     const v = await recorder();
-    const r = await paySolidarity(requestId, String(f.get("pieceRef") ?? "").trim().slice(0, 40), v.member.id);
-    await audit(v.member.id, "finances.aide_versee", requestId, { memberId: r.memberId, amount: r.amount });
-    return "Aide versée : dépense enregistrée au journal, membre prévenu.";
+    const e = await prepareExpense({ label: data.label.slice(0, 200), amount: Number(data.amount) }, v.member.id);
+    await audit(v.member.id, "finances.depense_preparee", e.id, { piece: pieceRef(e.number), amount: e.amount, label: e.label });
+    return `Pièce ${pieceRef(e.number)} préparée : elle attend la signature du Trésorier.`;
+  });
+  return r.ok ? r : { ...r, data };
+}
+
+export async function prepareAidExpenseAction(requestId: string): Promise<FormState> {
+  return runThenShow("/finances/depenses", async () => {
+    const v = await recorder();
+    const e = await prepareAidExpense(requestId, v.member.id);
+    await audit(v.member.id, "finances.depense_preparee", e.id, { piece: pieceRef(e.number), amount: e.amount, solidarityRequestId: requestId });
+    return `Pièce ${pieceRef(e.number)} préparée pour l'aide : elle attend la signature du Trésorier.`;
+  });
+}
+
+export async function signExpenseAction(id: string): Promise<FormState> {
+  return runThenShow("/finances/depenses", async () => {
+    const v = await step((v) => v.canSign, "au Trésorier");
+    const e = await signExpense(id, v.member.id);
+    await audit(v.member.id, "finances.depense_signee", id, { piece: pieceRef(e.number) });
+    return `Pièce ${pieceRef(e.number)} signée : elle attend le visa du conseil d'administration.`;
+  });
+}
+
+export async function approveExpenseAction(id: string): Promise<FormState> {
+  return runThenShow("/finances/depenses", async () => {
+    const v = await step((v) => v.canApprove, "aux membres du conseil d'administration");
+    const e = await approveExpense(id, v.member.id);
+    await audit(v.member.id, "finances.depense_visee", id, { piece: pieceRef(e.number) });
+    return `Pièce ${pieceRef(e.number)} visée : elle peut être payée.`;
+  });
+}
+
+export async function rejectExpenseAction(id: string, _p: FormState, f: FormData): Promise<FormState> {
+  const reason = String(f.get("reason") ?? "").trim();
+  if (!reason) return { ok: false, message: "Indiquez le motif du rejet.", errors: { reason: "Motif : champ obligatoire" } };
+  return runThenShow("/finances/depenses", async () => {
+    const v = await step((v) => v.canSign || v.canApprove, "au Trésorier et au conseil d'administration");
+    const e = await rejectExpense(id, reason.slice(0, 200), v.member.id);
+    await audit(v.member.id, "finances.depense_rejetee", id, { piece: pieceRef(e.number), reason });
+    return `Pièce ${pieceRef(e.number)} rejetée.`;
+  });
+}
+
+export async function payExpenseAction(id: string): Promise<FormState> {
+  return runThenShow("/finances/depenses", async () => {
+    const v = await recorder();
+    const { expense: e, entry } = await payExpense(id, v.member.id);
+    await audit(v.member.id, "finances.depense_payee", id, { piece: pieceRef(e.number), amount: e.amount, ecriture: entry.number, solidarityRequestId: e.solidarityRequestId });
+    return `Pièce ${pieceRef(e.number)} payée : dépense inscrite au journal (écriture n° ${entry.number})${e.solidarityRequestId ? ", membre prévenu" : ""}.`;
   });
 }

@@ -15,13 +15,16 @@ export default async function FinancesLayout({ children }: { children: React.Rea
       nav={[
         { href: "/finances", label: "Tableau de bord" },
         { href: "/finances/journal", label: "Journal comptable" },
+        { href: "/finances/depenses", label: "Dépenses à viser" },
         { href: "/finances/encaisser", label: "Encaisser en espèces" },
         { href: "/finances/paiements", label: "Paiements et retards" },
       ]}
       extra={[...(v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : []), { href: "/membre", label: "Mon espace membre" }]}
     >
       {!v.canRecord && (
-        <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">Lecture seule : seuls le comptable, le Trésorier et l'administrateur enregistrent des opérations.</p>
+        <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">
+          Lecture seule : seuls le comptable, le Trésorier et l'administrateur enregistrent des opérations.{v.canApprove ? " Membre du CA : vous visez les dépenses dans « Dépenses à viser »." : ""}
+        </p>
       )}
       {children}
     </AppShell>
