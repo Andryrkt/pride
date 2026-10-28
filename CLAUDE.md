@@ -32,7 +32,7 @@ L'équipe de développement est composée de bénévoles. Parlez en **français*
 ## Commandes
 ```bash
 docker compose up -d && pnpm install && cp .env.example apps/web/.env.local
-pnpm db:deploy && pnpm db:seed && pnpm dev          # démo : admin@pride.local / membre@pride.local, mot de passe PrideDemo2026!
+pnpm db:deploy && pnpm db:seed && pnpm dev          # démo : admin@pride.local / membre@pride.local / comptable@pride.local, mot de passe PrideDemo2026!
 pnpm -r typecheck && pnpm --filter @pride/shared test
 pnpm test:e2e                                        # site lancé, base fraîche + démo
 node tests/commissions.e2e.mjs                       # site lancé, base avec démo (peut être relancé)
@@ -43,6 +43,7 @@ node tests/reseau.e2e.mjs                            # formations, offres, comp�
 node tests/messagerie.e2e.mjs                        # messagerie (assistant + responsables) : site lancé, base avec démo
 node tests/consultation.e2e.mjs                      # consultation en ligne (vote anonyme) : site lancé, base avec démo
 node tests/exclusion.e2e.mjs                         # exclusion / démission (≈ 2 min, crée des membres fictifs en base)
+node tests/finances.e2e.mjs                          # espace Finances et comptable (crée des membres fictifs en base)
 node tests/aide.e2e.mjs                              # aide : 3 guides, questions, accès, impression (site lancé, base avec démo)
 node tests/captures-aide.mjs                         # régénère les captures des guides (site lancé, base avec démo)
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
@@ -77,6 +78,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
   - consultations en ligne (« vote en ligne » de la maquette, `apps/web/src/lib/consultations.ts`) : ouvertes par le CA, la Secrétaire générale ou l'administrateur sur la page AG (2 à 6 réponses, date de clôture) ; vote **anonyme** des membres actifs majeurs, une seule fois (`consultation_voters` et `consultation_ballots` sans lien entre eux) ; résultats après le vote ou la clôture ; carte « vote en ligne ouvert » sur le tableau de bord. **Avis consultatif** : les résolutions restent votées en séance d'AG (quorum des présents, pas de procuration). Test : `node tests/consultation.e2e.mjs`.
   - fin de la qualité de membre (`apps/web/src/lib/membership.ts`, fiche membre dans Dirigeants › Registre) : démission et décès enregistrés par le CA, la Secrétaire générale ou l'administrateur ; exclusion en deux étapes (motif et convocation du membre à une audition, puis délibération du CA **après l'audition**, adoptée aux 2/3 des présents avec `exclusionAdopted`). Effets : statut, fin des mandats, sortie des commissions, carte « non valide », espace membre et API fermés. Pas sur sa propre fiche. Test : `node tests/exclusion.e2e.mjs`.
   - aide (`/aide`) : guides des **candidats**, des **membres** et des **dirigeants** (ce dernier réservé aux dirigeants connectés), une page par tâche, version complète à imprimer `/aide/<guide>/imprimer` (une partie par feuille A4), et **questions fréquentes** `/aide/questions`. **Textes dans `apps/web/src/content/`** (`guide-*.ts`, `faq.ts`, registre `guides.ts`) à modifier sans toucher aux pages ; captures dans `apps/web/public/aide/<guide>`, régénérées par `tests/captures-aide.mjs` sur les données de démo (le seed crée aussi une candidature, une demande de solidarité et une conversation fictives pour ces captures).
+  - espace **Finances** (`/finances`, `apps/web/src/lib/finances.ts`) et rôle **Comptable** (mandat `COMPTABLE`, attribué ou retiré par le CA ou l'administrateur sur la fiche du membre) : tableau de bord (solde, recettes et dépenses du mois, cotisations du mois, retards, aides à verser), journal (nouvelle écriture, **rectification par écriture inverse**, jamais de modification), encaissement des cotisations en espèces (reçu + recette), versement des aides accordées (dépense, statut « Versée »), paiements et retards, export CSV pour l'AG. Enregistrent : comptable, Trésorier, administrateur ; les autres dirigeants consultent (lecture seule) ; le comptable n'a accès qu'à cet espace et y arrive à la connexion (`/connexion/suite`). Test : `node tests/finances.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;

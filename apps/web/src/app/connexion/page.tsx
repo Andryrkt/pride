@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       {sp.erreur === "compte-inactif" && (
         <p className="rounded-xl bg-flame-50 px-4 py-3 font-semibold text-flame-800">Vous n'êtes plus membre actif de l'association : l'espace membre n'est plus accessible. Pour toute question, contactez l'association.</p>
       )}
-      <LoginForm next={sp.suite?.startsWith("/") ? sp.suite : "/membre"} />
+      <LoginForm next={sp.suite?.startsWith("/") && !sp.suite.startsWith("//") ? sp.suite : "/connexion/suite"} />
     </AuthShell>
   );
 }

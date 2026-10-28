@@ -24,7 +24,7 @@ export default async function SolidarityPage({ searchParams }: { searchParams: P
       <PageTitle title="Aides de solidarité" sub="Règlement intérieur, art. 6 : 50 000 Ar au membre, 25 000 Ar à sa famille proche, lors d'un événement heureux ou douloureux." />
       {ok && <p role="status" className="rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-800">{ok}</p>}
       <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">
-        Une aide accordée reste « à verser » : le versement passe par une pièce de dépense signée du Trésorier et visée par le conseil d'administration (statuts, art. 22).
+        Une aide accordée reste « à verser » : le versement passe par une pièce de dépense signée du Trésorier et visée par le conseil d'administration (statuts, art. 22), puis il est enregistré par le comptable ou le Trésorier dans l'espace Finances.
       </p>
 
       <Card className="flex flex-col gap-4">

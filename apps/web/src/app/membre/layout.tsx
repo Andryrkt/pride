@@ -28,7 +28,10 @@ export default async function MemberLayout({ children }: { children: React.React
         { href: "/membre/messages", label: "Messagerie", badge: convs.filter(unreadForMember).length },
         { href: "/membre/profil", label: "Mon profil" },
       ]}
-      extra={v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : undefined}
+      extra={[
+        ...(v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : []),
+        ...(v.isDirigeant || v.isComptable ? [{ href: "/finances", label: "Finances" }] : []),
+      ]}
     >
       {children}
     </AppShell>

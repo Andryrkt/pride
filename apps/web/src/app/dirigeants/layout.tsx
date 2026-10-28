@@ -32,7 +32,7 @@ export default async function DirigeantsLayout({ children }: { children: React.R
         { href: "/dirigeants/ag", label: "Assemblées générales" },
         { href: "/dirigeants/actualites", label: "Actualités et événements" },
       ]}
-      extra={[{ href: "/membre", label: "Mon espace membre" }]}
+      extra={[{ href: "/finances", label: "Finances" }, { href: "/membre", label: "Mon espace membre" }]}
     >
       {children}
     </AppShell>

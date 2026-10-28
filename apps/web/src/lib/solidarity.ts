@@ -14,6 +14,7 @@ export const SOLIDARITY_STATUS = {
   DEMANDEE: ["En attente", "yellow"],
   ACCORDEE: ["Accordée, à verser", "green"],
   REFUSEE: ["Refusée", "red"],
+  VERSEE: ["Versée", "green"],
 } as const;
 
 /** `file` : pièce jointe facultative, déjà validée (type et taille) par l'action. */

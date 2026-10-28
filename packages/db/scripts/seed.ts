@@ -138,6 +138,10 @@ async function main() {
     await addMandate(admin.id, "ADMIN_TECHNIQUE", new Date("2026-01-01"), null);
     await createLogin(admin.id, "Administrateur Démo", "admin@pride.local", "PrideDemo2026!");
 
+    const comptable = await upsertMember({ lastName: "Démo", firstNames: "Comptable", joinedAt: new Date("2026-02-01") });
+    await addMandate(comptable.id, "COMPTABLE", new Date("2026-02-01"), null);
+    await createLogin(comptable.id, "Comptable Démo", "comptable@pride.local", "PrideDemo2026!");
+
     const fanja = await upsertMember({ lastName: "RASOANAIVO", firstNames: "Fanja (démo)", phone: "034 12 345 67", address: "Analamahitsy, Antananarivo (fictif)", joinedAt: new Date("2026-03-01") });
     await createLogin(fanja.id, "Fanja (démo)", "membre@pride.local", "PrideDemo2026!");
     // Cotisations de mars à septembre payées, octobre à payer
@@ -222,6 +226,7 @@ async function main() {
       await db.insert(s.messages).values({ conversationId: conv!.id, sender: "MEMBRE", authorId: fanja.id, body: "Question transmise par l'assistant : « Je n'ai pas reçu le reçu de ma cotisation de juin (exemple fictif). »" });
     }
     console.log("  admin@pride.local / PrideDemo2026!   (espace dirigeants)");
+    console.log("  comptable@pride.local / PrideDemo2026! (espace Finances)");
     console.log("  membre@pride.local / PrideDemo2026!  (espace membres)");
   }
 

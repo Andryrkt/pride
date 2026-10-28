@@ -78,6 +78,13 @@
       "when": 1792669482682,
       "tag": "0010_statut_membres",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793173455481,
+      "tag": "0011_comptable",
+      "breakpoints": true
     }
   ]
 }

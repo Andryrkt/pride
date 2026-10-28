@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export function NavLink({ href, label, badge }: { href: string; label: string; badge?: number }) {
   const path = usePathname();
-  const root = href === "/membre" || href === "/dirigeants";
+  const root = href === "/membre" || href === "/dirigeants" || href === "/finances";
   const active = root ? path === href : path.startsWith(href);
   return (
     <Link

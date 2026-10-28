@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db, schema } from "@pride/db";
+import { and, db, eq, gte, isNull, or, schema } from "@pride/db";
 import { agrementSchema } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
@@ -299,4 +299,29 @@ export async function decideExclusionAction(procedureId: string, memberId: strin
     await audit(v.member.id, adopted ? "membre.exclusion" : "membre.exclusion_rejetee", memberId, { ...parsed.data, defense });
   } catch (e) { return membershipFail(e); }
   memberPage(memberId, adopted ? "Exclusion prononcée (deux tiers des présents) : la carte n'est plus valide." : "Deux tiers des présents non atteints : le membre reste membre, la procédure est close.");
+}
+
+// ---------------------------------------------------------------------------
+// Rôle de comptable (espace Finances) : désigné par le CA ou l'administrateur
+// ---------------------------------------------------------------------------
+
+export async function setComptableAction(memberId: string, on: boolean, _p: FormState): Promise<FormState> {
+  try {
+    const v = await requireDirigeant();
+    if (!v.isCA && !v.isAdmin) throw new MembershipError("Seuls le conseil d'administration et l'administrateur désignent le comptable.");
+    const today = new Date(new Date().toISOString().slice(0, 10));
+    const running = await db.query.mandates.findMany({ where: and(eq(schema.mandates.memberId, memberId), eq(schema.mandates.role, "COMPTABLE"), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, today))) });
+    if (on) {
+      const m = await db.query.members.findFirst({ where: eq(schema.members.id, memberId) });
+      if (m?.status !== "ACTIF") throw new MembershipError("Seul un membre actif peut être désigné comptable.");
+      if (running.length) throw new MembershipError("Ce membre est déjà comptable.");
+      await db.insert(schema.mandates).values({ memberId, role: "COMPTABLE", startsAt: today });
+    } else {
+      if (!running.length) throw new MembershipError("Ce membre n'est pas comptable.");
+      // Dernier jour : hier, pour retirer l'accès tout de suite.
+      for (const r of running) await db.update(schema.mandates).set({ endsAt: new Date(today.getTime() - 86_400_000) }).where(eq(schema.mandates.id, r.id));
+    }
+    await audit(v.member.id, on ? "comptable.designation" : "comptable.fin", memberId);
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, on ? "Rôle de comptable attribué : accès à l'espace Finances dès sa prochaine page." : "Rôle de comptable retiré.");
 }

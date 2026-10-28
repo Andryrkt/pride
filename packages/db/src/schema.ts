@@ -145,6 +145,8 @@ export const mandateRole = pgEnum("mandate_role", [
   "RESPONSABLE_COMMISSION",
   "RESPONSABLE_SECTION",
   "ADMIN_TECHNIQUE",
+  /** Tient la comptabilité (espace Finances) sans être dirigeant ; désigné par le CA ou l'administrateur. */
+  "COMPTABLE",
 ]);
 
 export const commissions = pgTable("commissions", {
@@ -652,7 +654,7 @@ export const contactMessages = pgTable("contact_messages", {
 /** Aide de solidarité (RI art. 6) : 50 000 Ar au membre, 25 000 Ar à sa famille proche. */
 export const solidarityKind = pgEnum("solidarity_kind", ["MARIAGE", "NAISSANCE", "MALADIE", "DECES"]);
 export const solidarityConcerns = pgEnum("solidarity_concerns", ["MEMBRE", "FAMILLE"]);
-export const solidarityStatus = pgEnum("solidarity_status", ["DEMANDEE", "ACCORDEE", "REFUSEE"]);
+export const solidarityStatus = pgEnum("solidarity_status", ["DEMANDEE", "ACCORDEE", "REFUSEE", "VERSEE"]);
 
 export const solidarityRequests = pgTable(
   "solidarity_requests",
@@ -675,6 +677,8 @@ export const solidarityRequests = pgTable(
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     decidedBy: text("decided_by"),
     decisionNote: text("decision_note"),
+    /** Versement enregistré au journal comptable (dépense). */
+    paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   // Une même déclaration envoyée deux fois ne crée qu'une demande.

@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { MEMBER_STATUS } from "@/lib/labels";
 import { canDecideApplications, requireDirigeant } from "@/lib/session";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { decideExclusionAction, departureAction, openExclusionAction } from "../../actions";
+import { decideExclusionAction, departureAction, openExclusionAction, setComptableAction } from "../../actions";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -28,6 +28,7 @@ export default async function MemberRecordPage({ params, searchParams }: { param
   const canManage = canDecideApplications(v) && m.status === "ACTIF";
   const [label, tone] = MEMBER_STATUS[m.status];
   const isSelf = m.id === v.member.id;
+  const isComptable = m.mandates.some((x) => x.role === "COMPTABLE" && (!x.endsAt || new Date(x.endsAt) >= new Date(new Date().toISOString().slice(0, 10))));
 
   return (
     <>
@@ -135,6 +136,17 @@ export default async function MemberRecordPage({ params, searchParams }: { param
             <p className="text-sm text-muted">Dans tous les cas, la carte devient invalide, les mandats et les commissions prennent fin, et l'espace membre est fermé.</p>
           </Card>
         </div>
+      )}
+      {(v.isCA || v.isAdmin) && m.status === "ACTIF" && (
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold">Rôle de comptable</h2>
+            <p className="text-[15px] text-muted">Le comptable tient le journal, encaisse les espèces et verse les aides accordées, dans l'espace Finances uniquement.</p>
+          </div>
+          <ActionForm action={setComptableAction.bind(null, m.id, !isComptable)} className="flex flex-col items-end gap-2">
+            <SubmitButton variant={isComptable ? "danger" : "outline"}>{isComptable ? "Retirer le rôle de comptable" : "Désigner comme comptable"}</SubmitButton>
+          </ActionForm>
+        </Card>
       )}
       {canManage && isSelf && <p className="rounded-xl bg-paper px-4 py-3 text-muted">Ces actions ne s'appliquent pas à votre propre fiche : un autre dirigeant doit les faire.</p>}
     </>

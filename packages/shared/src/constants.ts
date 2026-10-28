@@ -75,6 +75,7 @@ export const ROLE_LABELS = {
   RESPONSABLE_COMMISSION: "Responsable de commission",
   RESPONSABLE_SECTION: "Responsable de section",
   ADMIN_TECHNIQUE: "Administrateur du site",
+  COMPTABLE: "Comptable",
 } as const;
 
 export type MandateRole = keyof typeof ROLE_LABELS;

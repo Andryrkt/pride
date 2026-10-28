@@ -34,12 +34,9 @@ export function dueLabel(d: { kind: string; period: string }) {
 
 export class PaymentError extends Error {}
 
-/**
- * Paiement de cotisations par mobile money.
- * En mode « simulation », le paiement est confirmé immédiatement.
- */
-export async function payDues(input: { memberId: string; dueIds: string[]; provider: PaymentProviderId; phone: string }) {
-  const { paymentId, total } = await db.transaction(async (tx) => {
+/** Réserve des échéances à payer pour un nouveau paiement (une échéance déjà en cours de paiement est refusée). */
+function reserveDues(input: { memberId: string; dueIds: string[]; provider: PaymentProviderId | "ESPECES"; phone: string | null }) {
+  return db.transaction(async (tx) => {
     const rows = await tx
       .select()
       .from(schema.dues)
@@ -55,7 +52,14 @@ export async function payDues(input: { memberId: string; dueIds: string[]; provi
     await tx.update(schema.dues).set({ paymentId: p!.id }).where(inArray(schema.dues.id, input.dueIds));
     return { paymentId: p!.id, total };
   });
+}
 
+/**
+ * Paiement de cotisations par mobile money.
+ * En mode « simulation », le paiement est confirmé immédiatement.
+ */
+export async function payDues(input: { memberId: string; dueIds: string[]; provider: PaymentProviderId; phone: string }) {
+  const { paymentId, total } = await reserveDues(input);
   const provider = getPaymentProvider(input.provider);
   const result = await provider.initiate({ paymentId, amount: total, phone: input.phone, description: `Cotisation PRIDe ${formatAriary(total)}` });
   await db.update(schema.payments).set({ providerRef: result.providerRef }).where(eq(schema.payments.id, paymentId));
@@ -67,8 +71,14 @@ export async function payDues(input: { memberId: string; dueIds: string[]; provi
   return db.query.payments.findFirst({ where: eq(schema.payments.id, paymentId) });
 }
 
+/** Espèces remises au comptable ou au Trésorier : confirmé tout de suite (reçu, échéances payées, journal). */
+export async function payCash(memberId: string, dueIds: string[], actorId: string) {
+  const { paymentId } = await reserveDues({ memberId, dueIds, provider: "ESPECES", phone: null });
+  return confirmPayment(paymentId, actorId);
+}
+
 /** Confirme un paiement : reçu, échéances payées, écriture au journal comptable (non modifiable). */
-export async function confirmPayment(paymentId: string) {
+export async function confirmPayment(paymentId: string, actorId?: string) {
   return db.transaction(async (tx: Tx) => {
     const [p] = await tx.select().from(schema.payments).where(eq(schema.payments.id, paymentId)).for("update");
     if (!p) throw new PaymentError("Paiement introuvable.");
@@ -85,11 +95,12 @@ export async function confirmPayment(paymentId: string) {
     await tx.update(schema.dues).set({ status: "PAYEE", paidAt: now }).where(eq(schema.dues.paymentId, paymentId));
     const member = await tx.query.members.findFirst({ where: eq(schema.members.id, p.memberId) });
     await tx.insert(schema.ledgerEntries).values({
-      label: `Cotisation ${member?.number ?? ""} via ${PAYMENT_PROVIDERS[p.provider as PaymentProviderId] ?? p.provider}`,
+      label: `Cotisation ${member?.number ?? ""} via ${PAYMENT_PROVIDERS[p.provider as PaymentProviderId] ?? "espèces"}`,
       direction: "RECETTE",
       amount: p.amount,
       pieceRef: receipt,
       paymentId: p.id,
+      createdBy: actorId ?? null,
     });
     return updated!;
   });

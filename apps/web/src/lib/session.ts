@@ -27,6 +27,7 @@ async function loadViewer(reqHeaders: Headers) {
     isCA: roles.some((r) => CA_ROLES.includes(r)),
     isBureau: roles.some((r) => BUREAU_ROLES.includes(r)),
     isAdmin: roles.includes("ADMIN_TECHNIQUE"),
+    isComptable: roles.includes("COMPTABLE"),
   };
 }
 
@@ -64,6 +65,17 @@ export function canManageCommissions(v: NonNullable<Viewer>) {
 /** Préparation, convocation, tenue de l'AG et procès-verbal : CA, Secrétaire générale, administrateur. */
 export function canManageAssemblies(v: NonNullable<Viewer>) {
   return v.isCA || v.isAdmin || v.roles.includes("SECRETAIRE_GENERALE");
+}
+
+/** Finances : le comptable, le Trésorier et l'administrateur enregistrent ; les autres dirigeants consultent (lecture seule). */
+export function canRecordFinances(v: NonNullable<Viewer>) {
+  return v.isComptable || v.isAdmin || v.roles.includes("TRESORIER");
+}
+
+export async function requireFinances() {
+  const v = await requireMember();
+  if (!v.isDirigeant && !v.isComptable) redirect("/membre");
+  return { ...v, canRecord: canRecordFinances(v) };
 }
 
 /** Décision sur les aides de solidarité : CA, bureau exécutif (dont le Trésorier), administrateur. */
