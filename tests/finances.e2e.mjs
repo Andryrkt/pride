@@ -1,5 +1,5 @@
 // Espace Finances et rôle de comptable : arrivée du comptable sur ses finances, accès limité, recette, rectification
-// (journal non modifiable), encaissement en espèces, export CSV, visa des dépenses (art. 22 : préparation, signature
+// (journal non modifiable), encaissement en espèces, export CSV, livre par compte, visa des dépenses (art. 22 : préparation, signature
 // du Trésorier, visa du CA par une autre personne, rejet, paiement d'une aide), désignation du comptable.
 // Prérequis : base avec « pnpm db:seed » (comptes de démonstration, dont comptable@pride.local) et l'application lancée.
 // Crée à chaque passage des membres fictifs directement en base ; donne un instant le mandat de Trésorier au compte membre@pride.local. Peut être relancé.
@@ -52,6 +52,7 @@ try {
   await comptable.goto(`${BASE}/finances/journal`);
   const form = comptable.locator("form", { has: comptable.getByRole("button", { name: "Enregistrer la recette" }) });
   await form.getByLabel("Libellé").fill(LABEL);
+  await form.getByLabel("Compte").selectOption("DONS");
   await form.getByLabel("Montant (Ar)").fill("85000");
   await form.getByLabel("N° de pièce").fill(`PJ-${run}`);
   await form.getByRole("button", { name: "Enregistrer la recette" }).click();
@@ -97,6 +98,7 @@ try {
   const SUPPLY = `Fournitures test ${run} (fictif)`;
   const newPiece = comptable.locator("form", { has: comptable.getByRole("button", { name: "Préparer la pièce" }) }).last();
   await newPiece.getByLabel("Objet de la dépense").fill(SUPPLY);
+  await newPiece.getByLabel("Compte").selectOption("FONCTIONNEMENT");
   await newPiece.getByLabel("Montant (Ar)").fill("45000");
   await newPiece.getByRole("button", { name: "Préparer la pièce" }).click();
   await comptable.getByText(/Pièce PJ-\d{4} préparée : elle attend la signature/).waitFor();
@@ -136,6 +138,17 @@ try {
   const { rows: [rej] } = await db.query("select status, ledger_entry_id from expenses where label = $1", [SUPPLY]);
   if (rej.status !== "REJETEE" || rej.ledger_entry_id) fail("pièce rejetée incohérente");
   log("visa des dépenses : préparée, signée, visée par une autre personne, payée (aide versée) ; rejet motivé");
+
+  // Livre : chaque écriture est rangée dans son compte (la rectification dans le compte de l'écriture rectifiée)
+  const { rows: accounts } = await db.query(
+    "select l.label, l.account from ledger_entries l where l.label = $1 or l.corrects_id = (select id from ledger_entries where label = $1) or l.id = (select ledger_entry_id from expenses where solidarity_request_id = $2)",
+    [LABEL, aid.id],
+  );
+  if (accounts.length !== 3 || accounts.some((a) => a.account !== (a.label.startsWith("Aide") ? "AIDES_SOLIDARITE" : "DONS"))) fail(`comptes inattendus : ${JSON.stringify(accounts)}`);
+  await comptable.goto(`${BASE}/finances/livre`);
+  await comptable.locator("#compte-DONS").getByText(LABEL).waitFor();
+  await comptable.locator("#compte-AIDES_SOLIDARITE").getByText(`FINANCES-B-${run}`).waitFor();
+  log("livre : recette, rectification et aide rangées dans leur compte");
 
   // 8. Désignation et retrait du comptable par l'administrateur
   await admin.goto(`${BASE}/dirigeants/membres/${futureComptable}`);

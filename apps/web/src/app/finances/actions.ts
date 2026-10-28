@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { accountsFor, type LedgerAccount } from "@pride/shared";
 import { PaymentError, payCash } from "@/lib/dues";
 import { addEntry, approveExpense, correctEntry, FinanceError, payExpense, pieceRef, prepareAidExpense, prepareExpense, rejectExpense, signExpense } from "@/lib/finances";
 import { audit, requireFinances } from "@/lib/session";
@@ -33,16 +34,17 @@ async function run(job: () => Promise<string>): Promise<FormState> {
 }
 
 export async function addEntryAction(_p: FormState, f: FormData): Promise<FormState> {
-  const data = Object.fromEntries(["date", "label", "amount", "pieceRef"].map((k) => [k, String(f.get(k) ?? "").trim()]));
+  const data = Object.fromEntries(["date", "label", "amount", "pieceRef", "account"].map((k) => [k, String(f.get(k) ?? "").trim()]));
   const errors: Record<string, string> = {};
   const date = new Date(data.date!);
   if (Number.isNaN(date.getTime())) errors.date = "Date : champ obligatoire";
   if (!data.label) errors.label = "Libellé : champ obligatoire";
   if (!data.amount) errors.amount = "Montant : champ obligatoire";
+  if (!accountsFor("RECETTE").includes(data.account as LedgerAccount)) errors.account = "Compte : champ obligatoire";
   if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
   const r = await run(async () => {
     const v = await recorder();
-    const e = await addEntry({ date, label: data.label!.slice(0, 200), amount: Number(data.amount), pieceRef: data.pieceRef!.slice(0, 40) }, v.member.id);
+    const e = await addEntry({ date, label: data.label!.slice(0, 200), amount: Number(data.amount), pieceRef: data.pieceRef!.slice(0, 40), account: data.account as LedgerAccount }, v.member.id);
     await audit(v.member.id, "finances.ecriture", e.id, { number: e.number, direction: e.direction, amount: e.amount, label: e.label });
     return `Recette enregistrée (écriture n° ${e.number}).`;
   });
@@ -79,14 +81,15 @@ async function step(allowed: (v: Awaited<ReturnType<typeof requireFinances>>) =>
 }
 
 export async function prepareExpenseAction(_p: FormState, f: FormData): Promise<FormState> {
-  const data = { label: String(f.get("label") ?? "").trim(), amount: String(f.get("amount") ?? "").trim() };
+  const data = { label: String(f.get("label") ?? "").trim(), amount: String(f.get("amount") ?? "").trim(), account: String(f.get("account") ?? "") };
   const errors: Record<string, string> = {};
   if (!data.label) errors.label = "Objet de la dépense : champ obligatoire";
   if (!data.amount) errors.amount = "Montant : champ obligatoire";
+  if (!accountsFor("DEPENSE").includes(data.account as LedgerAccount)) errors.account = "Compte : champ obligatoire";
   if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
   const r = await runThenShow("/finances/depenses", async () => {
     const v = await recorder();
-    const e = await prepareExpense({ label: data.label.slice(0, 200), amount: Number(data.amount) }, v.member.id);
+    const e = await prepareExpense({ label: data.label.slice(0, 200), amount: Number(data.amount), account: data.account as LedgerAccount }, v.member.id);
     await audit(v.member.id, "finances.depense_preparee", e.id, { piece: pieceRef(e.number), amount: e.amount, label: e.label });
     return `Pièce ${pieceRef(e.number)} préparée : elle attend la signature du Trésorier.`;
   });

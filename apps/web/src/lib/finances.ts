@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, db, desc, eq, gte, inArray, lt, ne, schema, sql, sum } from "@pride/db";
-import { formatAriary, type MandateRole, periodOf, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "@pride/shared";
+import { formatAriary, LEDGER_ACCOUNTS, type LedgerAccount, type MandateRole, periodOf, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "@pride/shared";
 import { responsableEmails } from "./commissions";
 import { env } from "./env";
 import { sendMail } from "./mail";
@@ -41,6 +41,24 @@ export async function financeSummary() {
   };
 }
 
+/** Compte du livre d'une écriture ; avant le livre, seules les cotisations (liées à un paiement) se classent sans doute possible. */
+export const accountOf = (e: { account: string | null; paymentId: string | null }) => e.account ?? (e.paymentId ? "COTISATIONS" : null);
+export const accountLabel = (account: string | null) => (account && account in LEDGER_ACCOUNTS ? LEDGER_ACCOUNTS[account as LedgerAccount][0] : "Non classé (avant le livre)");
+
+/** Livre d'une année : les écritures du journal regroupées par compte, dans l'ordre de la liste des comptes, avec leurs totaux. */
+export async function ledgerBook(year: number) {
+  const rows = (await journal(year)).reverse();
+  const keys: (string | null)[] = [...Object.keys(LEDGER_ACCOUNTS), null];
+  return keys
+    .map((key) => {
+      const entries = rows.filter((r) => accountOf(r) === key);
+      const recettes = entries.filter((e) => e.direction === "RECETTE").reduce((s, e) => s + e.amount, 0);
+      const depenses = entries.filter((e) => e.direction === "DEPENSE").reduce((s, e) => s + e.amount, 0);
+      return { key, label: accountLabel(key), entries, recettes, depenses };
+    })
+    .filter((a) => a.entries.length > 0);
+}
+
 /** Écritures d'une année, la plus récente en premier, avec l'écriture qui les rectifie éventuellement. */
 export async function journal(year: number) {
   const rows = await db.query.ledgerEntries.findMany({
@@ -55,7 +73,7 @@ export async function journal(year: number) {
  * Nouvelle recette validée : elle ne pourra plus être ni modifiée ni supprimée (statuts, art. 21).
  * Les dépenses passent par une pièce signée et visée (art. 22) : voir `payExpense`.
  */
-export async function addEntry(e: { date: Date; label: string; amount: number; pieceRef: string }, actorId: string) {
+export async function addEntry(e: { date: Date; label: string; amount: number; pieceRef: string; account: LedgerAccount }, actorId: string) {
   checkAmount(e.amount);
   if (e.date > new Date()) throw new FinanceError("La date d'une écriture ne peut pas être dans le futur.");
   const [row] = await db.insert(schema.ledgerEntries).values({ ...e, direction: "RECETTE", pieceRef: e.pieceRef || null, createdBy: actorId }).returning();
@@ -76,6 +94,7 @@ export async function correctEntry(entryId: string, reason: string, actorId: str
       amount: original.amount,
       pieceRef: `RECT-${original.number}`,
       correctsId: original.id,
+      account: accountOf(original),
       createdBy: actorId,
     })
     .returning();
@@ -145,7 +164,7 @@ function checkAmount(amount: number) {
   if (!Number.isInteger(amount) || amount <= 0) throw new FinanceError("Le montant doit être un nombre entier d'ariary, supérieur à zéro.");
 }
 
-export async function prepareExpense(e: { label: string; amount: number }, actorId: string) {
+export async function prepareExpense(e: { label: string; amount: number; account: LedgerAccount }, actorId: string) {
   checkAmount(e.amount);
   const [row] = await db.insert(schema.expenses).values({ ...e, createdBy: actorId }).returning();
   await notifyNextStep(row!, actorId);
@@ -161,6 +180,7 @@ export async function prepareAidExpense(requestId: string, actorId: string) {
     .values({
       label: `Aide de solidarité : ${SOLIDARITE_EVENEMENTS[req.kind].toLowerCase()} (${SOLIDARITE_CONCERNE[req.concerns].toLowerCase()}) · ${req.member.lastName} ${req.member.firstNames} (${req.member.number})`,
       amount: req.amount,
+      account: "AIDES_SOLIDARITE",
       solidarityRequestId: req.id,
       createdBy: actorId,
     })
@@ -212,7 +232,7 @@ export async function payExpense(id: string, actorId: string) {
   const paid = await db.transaction(async (tx) => {
     const [e] = await tx.update(schema.expenses).set({ status: "PAYEE", paidAt: new Date() }).where(and(eq(schema.expenses.id, id), eq(schema.expenses.status, "A_PAYER"))).returning();
     if (!e) throw new FinanceError("Cette pièce n'est pas à payer (pas encore visée, ou déjà payée).");
-    const [entry] = await tx.insert(schema.ledgerEntries).values({ label: e.label, direction: "DEPENSE", amount: e.amount, pieceRef: pieceRef(e.number), createdBy: actorId }).returning();
+    const [entry] = await tx.insert(schema.ledgerEntries).values({ label: e.label, direction: "DEPENSE", amount: e.amount, pieceRef: pieceRef(e.number), account: e.account, createdBy: actorId }).returning();
     await tx.update(schema.expenses).set({ ledgerEntryId: entry!.id }).where(eq(schema.expenses.id, id));
     if (e.solidarityRequestId) {
       const [aid] = await tx
@@ -252,15 +272,15 @@ export const recentPayments = () =>
 export async function journalCsv(year: number) {
   const rows = (await journal(year)).reverse();
   const cell = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
-  const lines = [["N°", "Date", "Libellé", "Pièce", "Recette (Ar)", "Dépense (Ar)"].map(cell).join(";")];
+  const lines = [["N°", "Date", "Libellé", "Compte", "Pièce", "Recette (Ar)", "Dépense (Ar)"].map(cell).join(";")];
   let rec = 0;
   let dep = 0;
   for (const r of rows) {
     if (r.direction === "RECETTE") rec += r.amount;
     else dep += r.amount;
-    lines.push([r.number, formatDate(r.date), r.label, r.pieceRef ?? "", r.direction === "RECETTE" ? r.amount : "", r.direction === "DEPENSE" ? r.amount : ""].map(cell).join(";"));
+    lines.push([r.number, formatDate(r.date), r.label, accountLabel(accountOf(r)), r.pieceRef ?? "", r.direction === "RECETTE" ? r.amount : "", r.direction === "DEPENSE" ? r.amount : ""].map(cell).join(";"));
   }
-  lines.push(["", "", "Totaux", "", rec, dep].map(cell).join(";"), ["", "", "Solde de l'année", "", rec - dep, ""].map(cell).join(";"));
+  lines.push(["", "", "Totaux", "", "", rec, dep].map(cell).join(";"), ["", "", "Solde de l'année", "", "", rec - dep, ""].map(cell).join(";"));
   // BOM UTF-8 : Excel affiche correctement les accents.
   return "﻿" + lines.join("\r\n");
 }

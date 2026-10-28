@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { formatAriary } from "@pride/shared";
+import { accountsFor, formatAriary, LEDGER_ACCOUNTS } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ActionForm } from "@/components/ui/action-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
-import { Input, RequiredLegend } from "@/components/ui/field";
+import { Input, RequiredLegend, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { journal } from "@/lib/finances";
+import { accountLabel, accountOf, journal } from "@/lib/finances";
 import { requireFinances } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 import { addEntryAction, correctEntryAction } from "../actions";
@@ -44,9 +44,13 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
           <h2 className="mb-3 text-xl font-bold">Nouvelle recette</h2>
           <ActionForm action={addEntryAction}>
             <RequiredLegend />
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_1fr_160px_160px]">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_1fr_240px_160px_160px]">
               <Input label="Date" name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
               <Input label="Libellé" name="label" required placeholder="Ex. : Don, participation à une formation" />
+              <Select label="Compte" name="account" required defaultValue="">
+                <option value="">Choisissez…</option>
+                {accountsFor("RECETTE").map((k) => <option key={k} value={k}>{LEDGER_ACCOUNTS[k][0]}</option>)}
+              </Select>
               <Input label="Montant (Ar)" name="amount" type="number" min={1} step={1} required />
               <Input label="N° de pièce" name="pieceRef" placeholder="REC-0012" />
             </div>
@@ -70,7 +74,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
               <tr key={e.id} className="border-t border-line align-top">
                 <td className="px-4 py-3 font-mono text-sm">{e.number}</td>
                 <td className="py-3 whitespace-nowrap">{formatDate(e.date)}</td>
-                <td className="py-3">{e.label}</td>
+                <td className="py-3">{e.label}<br /><span className="text-sm text-muted">{accountLabel(accountOf(e))}</span></td>
                 <td className="py-3">{e.pieceRef ?? "—"}</td>
                 <td className="py-3 text-right whitespace-nowrap">{e.direction === "RECETTE" ? formatAriary(e.amount) : ""}</td>
                 <td className="py-3 text-right whitespace-nowrap">{e.direction === "DEPENSE" ? formatAriary(e.amount) : ""}</td>

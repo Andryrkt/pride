@@ -105,5 +105,22 @@ export const PAYMENT_PROVIDERS = {
 
 export type PaymentProviderId = keyof typeof PAYMENT_PROVIDERS;
 
+/**
+ * Comptes du livre comptable (catégorie de chaque écriture). Liste proposée, à valider avec le comptable :
+ * on peut en ajouter sans migration (colonne texte), mais ne pas renommer une clé déjà utilisée.
+ */
+export const LEDGER_ACCOUNTS = {
+  COTISATIONS: ["Cotisations et droits d'entrée", "RECETTE"],
+  DONS: ["Dons et subventions", "RECETTE"],
+  ACTIVITES_RECETTES: ["Recettes d'activités (formations, événements)", "RECETTE"],
+  AUTRES_RECETTES: ["Autres recettes", "RECETTE"],
+  AIDES_SOLIDARITE: ["Aides de solidarité", "DEPENSE"],
+  ACTIVITES_DEPENSES: ["Activités (formations, événements)", "DEPENSE"],
+  FONCTIONNEMENT: ["Fonctionnement (fournitures, communication, transport)", "DEPENSE"],
+  AUTRES_DEPENSES: ["Autres dépenses", "DEPENSE"],
+} as const satisfies Record<string, readonly [string, "RECETTE" | "DEPENSE"]>;
+export type LedgerAccount = keyof typeof LEDGER_ACCOUNTS;
+export const accountsFor = (direction: "RECETTE" | "DEPENSE") => (Object.keys(LEDGER_ACCOUNTS) as LedgerAccount[]).filter((k) => LEDGER_ACCOUNTS[k][1] === direction);
+
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const ACCEPTED_UPLOAD_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];

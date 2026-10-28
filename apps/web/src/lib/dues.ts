@@ -100,6 +100,7 @@ export async function confirmPayment(paymentId: string, actorId?: string) {
       amount: p.amount,
       pieceRef: receipt,
       paymentId: p.id,
+      account: "COTISATIONS",
       createdBy: actorId ?? null,
     });
     return updated!;

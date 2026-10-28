@@ -1,10 +1,10 @@
-import { formatAriary } from "@pride/shared";
+import { accountsFor, formatAriary, LEDGER_ACCOUNTS } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ActionForm } from "@/components/ui/action-form";
 import { Badge, Card } from "@/components/ui/card";
-import { Input, RequiredLegend } from "@/components/ui/field";
+import { Input, RequiredLegend, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { EXPENSE_STATUS, expenseList, pieceRef } from "@/lib/finances";
+import { accountLabel, EXPENSE_STATUS, expenseList, pieceRef } from "@/lib/finances";
 import { requireFinances } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 import { approveExpenseAction, payExpenseAction, prepareAidExpenseAction, prepareExpenseAction, rejectExpenseAction, signExpenseAction } from "../actions";
@@ -65,7 +65,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex flex-col gap-1">
                   <span className="font-bold">{e.label}</span>
-                  <span className="text-sm text-muted">Pièce {pieceRef(e.number)} · préparée par {who(e.creator)} le {formatDate(e.createdAt)}</span>
+                  <span className="text-sm text-muted">Pièce {pieceRef(e.number)} · {accountLabel(e.account)} · préparée par {who(e.creator)} le {formatDate(e.createdAt)}</span>
                   <div className="flex flex-wrap gap-2">
                     {e.signedAt && <Badge>Signée : {who(e.signer)}, {formatDate(e.signedAt)} ✓</Badge>}
                     {e.visaAt && <Badge>Visée : {who(e.approver)}, {formatDate(e.visaAt)} ✓</Badge>}
@@ -113,8 +113,12 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           <h2 className="mb-3 text-xl font-bold">Nouvelle pièce de dépense</h2>
           <ActionForm action={prepareExpenseAction}>
             <RequiredLegend />
-            <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
+            <div className="grid gap-3 sm:grid-cols-[1fr_280px_200px]">
               <Input label="Objet de la dépense" name="label" required placeholder="Ex. : fournitures pour la formation (papier, marqueurs)" />
+              <Select label="Compte" name="account" required defaultValue="">
+                <option value="">Choisissez…</option>
+                {accountsFor("DEPENSE").map((k) => <option key={k} value={k}>{LEDGER_ACCOUNTS[k][0]}</option>)}
+              </Select>
               <Input label="Montant (Ar)" name="amount" type="number" min={1} step={1} required />
             </div>
             <SubmitButton className="self-start">Préparer la pièce</SubmitButton>

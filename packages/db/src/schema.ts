@@ -463,6 +463,8 @@ export const ledgerEntries = pgTable("ledger_entries", {
     .unique()
     .references(() => payments.id),
   correctsId: text("corrects_id"),
+  /** Compte du livre (`LEDGER_ACCOUNTS`) ; vide pour les écritures antérieures au livre, qui ne peuvent plus être modifiées. */
+  account: text("account"),
   createdBy: text("created_by"),
   createdAt: createdAt(),
 });
@@ -698,6 +700,8 @@ export const expenses = pgTable(
     number: serial("number").notNull().unique(),
     label: text("label").notNull(),
     amount: integer("amount").notNull(),
+    /** Compte du livre de la future écriture de dépense (`LEDGER_ACCOUNTS`). */
+    account: text("account"),
     solidarityRequestId: text("solidarity_request_id").references(() => solidarityRequests.id),
     status: expenseStatus("status").notNull().default("A_SIGNER"),
     createdBy: text("created_by").notNull(),
