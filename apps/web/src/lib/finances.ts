@@ -45,6 +45,9 @@ export async function financeSummary() {
 export const accountOf = (e: { account: string | null; paymentId: string | null }) => e.account ?? (e.paymentId ? "COTISATIONS" : null);
 export const accountLabel = (account: string | null) => (account && account in LEDGER_ACCOUNTS ? LEDGER_ACCOUNTS[account as LedgerAccount][0] : "Non classé (avant le livre)");
 
+/** Noms des commissions par identifiant (affichage des écritures). */
+export const commissionNames = async () => new Map((await db.query.commissions.findMany()).map((c) => [c.id, c.name]));
+
 /** Livre d'une année : les écritures du journal regroupées par compte, dans l'ordre de la liste des comptes, avec leurs totaux. */
 export async function ledgerBook(year: number) {
   const rows = (await journal(year)).reverse();
@@ -73,9 +76,10 @@ export async function journal(year: number) {
  * Nouvelle recette validée : elle ne pourra plus être ni modifiée ni supprimée (statuts, art. 21).
  * Les dépenses passent par une pièce signée et visée (art. 22) : voir `payExpense`.
  */
-export async function addEntry(e: { date: Date; label: string; amount: number; pieceRef: string; account: LedgerAccount }, actorId: string) {
+export async function addEntry(e: { date: Date; label: string; amount: number; pieceRef: string; account: LedgerAccount; commissionId: string | null }, actorId: string) {
   checkAmount(e.amount);
   if (e.date > new Date()) throw new FinanceError("La date d'une écriture ne peut pas être dans le futur.");
+  if (e.commissionId && !(await db.query.commissions.findFirst({ where: eq(schema.commissions.id, e.commissionId) }))) throw new FinanceError("Commission inconnue.");
   const [row] = await db.insert(schema.ledgerEntries).values({ ...e, direction: "RECETTE", pieceRef: e.pieceRef || null, createdBy: actorId }).returning();
   return row!;
 }
@@ -95,6 +99,7 @@ export async function correctEntry(entryId: string, reason: string, actorId: str
       pieceRef: `RECT-${original.number}`,
       correctsId: original.id,
       account: accountOf(original),
+      commissionId: original.commissionId,
       createdBy: actorId,
     })
     .returning();
@@ -118,7 +123,7 @@ export const EXPENSE_STATUS: Record<ExpenseStatus, [string, "yellow" | "green" |
 
 /** Pièces en cours (non payées, non rejetées), puis les 50 dernières traitées. */
 export async function expenseList() {
-  const withNames = { aid: { with: { member: true } }, creator: true, signer: true, approver: true } as const;
+  const withNames = { aid: { with: { member: true } }, line: { with: { commission: true } }, creator: true, signer: true, approver: true } as const;
   const [open, closed, aidsWithoutPiece] = await Promise.all([
     db.query.expenses.findMany({ where: inArray(schema.expenses.status, ["A_SIGNER", "A_VISER", "A_PAYER"]), orderBy: asc(schema.expenses.number), with: withNames }),
     db.query.expenses.findMany({ where: inArray(schema.expenses.status, ["PAYEE", "REJETEE"]), orderBy: desc(schema.expenses.number), limit: 50, with: withNames }),
@@ -164,9 +169,28 @@ function checkAmount(amount: number) {
   if (!Number.isInteger(amount) || amount <= 0) throw new FinanceError("Le montant doit être un nombre entier d'ariary, supérieur à zéro.");
 }
 
-export async function prepareExpense(e: { label: string; amount: number; account: LedgerAccount }, actorId: string) {
+/** Lignes de dépense du budget adopté de l'année en cours, auxquelles une pièce peut être imputée. */
+export async function expenseBudgetLines() {
+  const budget = await db.query.budgets.findFirst({
+    where: and(eq(schema.budgets.year, new Date().getFullYear()), eq(schema.budgets.status, "ADOPTE")),
+    with: { lines: { with: { commission: true }, orderBy: asc(schema.budgetLines.account) } },
+  });
+  return (budget?.lines ?? []).filter((l) => LEDGER_ACCOUNTS[l.account as LedgerAccount]?.[1] === "DEPENSE");
+}
+
+/** Imputation : une ligne du budget adopté (qui donne le compte), ou « hors budget » avec un compte de dépense. */
+export async function prepareExpense(e: { label: string; amount: number } & ({ budgetLineId: string } | { account: LedgerAccount }), actorId: string) {
   checkAmount(e.amount);
-  const [row] = await db.insert(schema.expenses).values({ ...e, createdBy: actorId }).returning();
+  let values: { label: string; amount: number; account: string; budgetLineId?: string } = { label: e.label, amount: e.amount, account: "" };
+  if ("budgetLineId" in e) {
+    const line = (await expenseBudgetLines()).find((l) => l.id === e.budgetLineId);
+    if (!line) throw new FinanceError("Cette ligne ne fait pas partie du budget adopté de l'année.");
+    values = { ...values, account: line.account, budgetLineId: line.id };
+  } else {
+    // shortcut: « hors budget » reste permis (avertissement, pas blocage, comme le dépassement d'une ligne).
+    values.account = e.account;
+  }
+  const [row] = await db.insert(schema.expenses).values({ ...values, createdBy: actorId }).returning();
   await notifyNextStep(row!, actorId);
   return row!;
 }
@@ -175,12 +199,14 @@ export async function prepareExpense(e: { label: string; amount: number; account
 export async function prepareAidExpense(requestId: string, actorId: string) {
   const req = await db.query.solidarityRequests.findFirst({ where: eq(schema.solidarityRequests.id, requestId), with: { member: true } });
   if (!req || req.status !== "ACCORDEE") throw new FinanceError("Cette aide n'est pas à verser (déjà versée ou pas encore accordée).");
+  const line = (await expenseBudgetLines()).find((l) => l.account === "AIDES_SOLIDARITE" && !l.commissionId);
   const [row] = await db
     .insert(schema.expenses)
     .values({
       label: `Aide de solidarité : ${SOLIDARITE_EVENEMENTS[req.kind].toLowerCase()} (${SOLIDARITE_CONCERNE[req.concerns].toLowerCase()}) · ${req.member.lastName} ${req.member.firstNames} (${req.member.number})`,
       amount: req.amount,
       account: "AIDES_SOLIDARITE",
+      budgetLineId: line?.id,
       solidarityRequestId: req.id,
       createdBy: actorId,
     })
@@ -232,7 +258,11 @@ export async function payExpense(id: string, actorId: string) {
   const paid = await db.transaction(async (tx) => {
     const [e] = await tx.update(schema.expenses).set({ status: "PAYEE", paidAt: new Date() }).where(and(eq(schema.expenses.id, id), eq(schema.expenses.status, "A_PAYER"))).returning();
     if (!e) throw new FinanceError("Cette pièce n'est pas à payer (pas encore visée, ou déjà payée).");
-    const [entry] = await tx.insert(schema.ledgerEntries).values({ label: e.label, direction: "DEPENSE", amount: e.amount, pieceRef: pieceRef(e.number), account: e.account, createdBy: actorId }).returning();
+    const line = e.budgetLineId ? await tx.query.budgetLines.findFirst({ where: eq(schema.budgetLines.id, e.budgetLineId) }) : undefined;
+    const [entry] = await tx
+      .insert(schema.ledgerEntries)
+      .values({ label: e.label, direction: "DEPENSE", amount: e.amount, pieceRef: pieceRef(e.number), account: e.account, commissionId: line?.commissionId ?? null, createdBy: actorId })
+      .returning();
     await tx.update(schema.expenses).set({ ledgerEntryId: entry!.id }).where(eq(schema.expenses.id, id));
     if (e.solidarityRequestId) {
       const [aid] = await tx
@@ -270,17 +300,17 @@ export const recentPayments = () =>
 
 /** Journal d'une année en CSV (séparateur « ; », lisible par Excel en français), avec les totaux. */
 export async function journalCsv(year: number) {
-  const rows = (await journal(year)).reverse();
+  const [rows, commissions] = await Promise.all([journal(year).then((r) => r.reverse()), commissionNames()]);
   const cell = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
-  const lines = [["N°", "Date", "Libellé", "Compte", "Pièce", "Recette (Ar)", "Dépense (Ar)"].map(cell).join(";")];
+  const lines = [["N°", "Date", "Libellé", "Compte", "Commission", "Pièce", "Recette (Ar)", "Dépense (Ar)"].map(cell).join(";")];
   let rec = 0;
   let dep = 0;
   for (const r of rows) {
     if (r.direction === "RECETTE") rec += r.amount;
     else dep += r.amount;
-    lines.push([r.number, formatDate(r.date), r.label, accountLabel(accountOf(r)), r.pieceRef ?? "", r.direction === "RECETTE" ? r.amount : "", r.direction === "DEPENSE" ? r.amount : ""].map(cell).join(";"));
+    lines.push([r.number, formatDate(r.date), r.label, accountLabel(accountOf(r)), commissions.get(r.commissionId ?? "") ?? "Général", r.pieceRef ?? "", r.direction === "RECETTE" ? r.amount : "", r.direction === "DEPENSE" ? r.amount : ""].map(cell).join(";"));
   }
-  lines.push(["", "", "Totaux", "", "", rec, dep].map(cell).join(";"), ["", "", "Solde de l'année", "", "", rec - dep, ""].map(cell).join(";"));
+  lines.push(["", "", "Totaux", "", "", "", rec, dep].map(cell).join(";"), ["", "", "Solde de l'année", "", "", "", rec - dep, ""].map(cell).join(";"));
   // BOM UTF-8 : Excel affiche correctement les accents.
   return "﻿" + lines.join("\r\n");
 }

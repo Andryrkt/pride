@@ -98,7 +98,7 @@ try {
   const SUPPLY = `Fournitures test ${run} (fictif)`;
   const newPiece = comptable.locator("form", { has: comptable.getByRole("button", { name: "Préparer la pièce" }) }).last();
   await newPiece.getByLabel("Objet de la dépense").fill(SUPPLY);
-  await newPiece.getByLabel("Compte").selectOption("FONCTIONNEMENT");
+  await newPiece.getByLabel("Imputation (ligne du budget)").selectOption("acc:FONCTIONNEMENT");
   await newPiece.getByLabel("Montant (Ar)").fill("45000");
   await newPiece.getByRole("button", { name: "Préparer la pièce" }).click();
   await comptable.getByText(/Pièce PJ-\d{4} préparée : elle attend la signature/).waitFor();

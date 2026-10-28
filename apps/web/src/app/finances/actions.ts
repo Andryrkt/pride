@@ -1,7 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { accountsFor, type LedgerAccount } from "@pride/shared";
+import { accountsFor, formatAriary, type LedgerAccount } from "@pride/shared";
+import { remainingOnLine } from "@/lib/budget";
 import { PaymentError, payCash } from "@/lib/dues";
 import { addEntry, approveExpense, correctEntry, FinanceError, payExpense, pieceRef, prepareAidExpense, prepareExpense, rejectExpense, signExpense } from "@/lib/finances";
 import { audit, requireFinances } from "@/lib/session";
@@ -34,7 +35,7 @@ async function run(job: () => Promise<string>): Promise<FormState> {
 }
 
 export async function addEntryAction(_p: FormState, f: FormData): Promise<FormState> {
-  const data = Object.fromEntries(["date", "label", "amount", "pieceRef", "account"].map((k) => [k, String(f.get(k) ?? "").trim()]));
+  const data = Object.fromEntries(["date", "label", "amount", "pieceRef", "account", "commissionId"].map((k) => [k, String(f.get(k) ?? "").trim()]));
   const errors: Record<string, string> = {};
   const date = new Date(data.date!);
   if (Number.isNaN(date.getTime())) errors.date = "Date : champ obligatoire";
@@ -44,7 +45,7 @@ export async function addEntryAction(_p: FormState, f: FormData): Promise<FormSt
   if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
   const r = await run(async () => {
     const v = await recorder();
-    const e = await addEntry({ date, label: data.label!.slice(0, 200), amount: Number(data.amount), pieceRef: data.pieceRef!.slice(0, 40), account: data.account as LedgerAccount }, v.member.id);
+    const e = await addEntry({ date, label: data.label!.slice(0, 200), amount: Number(data.amount), pieceRef: data.pieceRef!.slice(0, 40), account: data.account as LedgerAccount, commissionId: data.commissionId || null }, v.member.id);
     await audit(v.member.id, "finances.ecriture", e.id, { number: e.number, direction: e.direction, amount: e.amount, label: e.label });
     return `Recette enregistrée (écriture n° ${e.number}).`;
   });
@@ -81,17 +82,21 @@ async function step(allowed: (v: Awaited<ReturnType<typeof requireFinances>>) =>
 }
 
 export async function prepareExpenseAction(_p: FormState, f: FormData): Promise<FormState> {
-  const data = { label: String(f.get("label") ?? "").trim(), amount: String(f.get("amount") ?? "").trim(), account: String(f.get("account") ?? "") };
+  const data = { label: String(f.get("label") ?? "").trim(), amount: String(f.get("amount") ?? "").trim(), imputation: String(f.get("imputation") ?? "") };
   const errors: Record<string, string> = {};
   if (!data.label) errors.label = "Objet de la dépense : champ obligatoire";
   if (!data.amount) errors.amount = "Montant : champ obligatoire";
-  if (!accountsFor("DEPENSE").includes(data.account as LedgerAccount)) errors.account = "Compte : champ obligatoire";
+  // « line:<id> » : ligne du budget adopté ; « acc:<compte> » : hors budget.
+  const [kind, ref = ""] = data.imputation.split(":");
+  if (!(kind === "line" && ref) && !(kind === "acc" && accountsFor("DEPENSE").includes(ref as LedgerAccount))) errors.imputation = "Imputation : champ obligatoire";
   if (Object.keys(errors).length) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
   const r = await runThenShow("/finances/depenses", async () => {
     const v = await recorder();
-    const e = await prepareExpense({ label: data.label.slice(0, 200), amount: Number(data.amount), account: data.account as LedgerAccount }, v.member.id);
-    await audit(v.member.id, "finances.depense_preparee", e.id, { piece: pieceRef(e.number), amount: e.amount, label: e.label });
-    return `Pièce ${pieceRef(e.number)} préparée : elle attend la signature du Trésorier.`;
+    const e = await prepareExpense({ label: data.label.slice(0, 200), amount: Number(data.amount), ...(kind === "line" ? { budgetLineId: ref } : { account: ref as LedgerAccount }) }, v.member.id);
+    await audit(v.member.id, "finances.depense_preparee", e.id, { piece: pieceRef(e.number), amount: e.amount, label: e.label, budgetLineId: e.budgetLineId });
+    const left = e.budgetLineId ? await remainingOnLine(e.budgetLineId, new Date().getFullYear()) : null;
+    const warning = e.budgetLineId ? (left !== null && left < 0 ? ` Attention : la ligne du budget est dépassée de ${formatAriary(-left)}.` : "") : " Attention : dépense hors budget.";
+    return `Pièce ${pieceRef(e.number)} préparée : elle attend la signature du Trésorier.${warning}`;
   });
   return r.ok ? r : { ...r, data };
 }

@@ -465,6 +465,8 @@ export const ledgerEntries = pgTable("ledger_entries", {
   correctsId: text("corrects_id"),
   /** Compte du livre (`LEDGER_ACCOUNTS`) ; vide pour les écritures antérieures au livre, qui ne peuvent plus être modifiées. */
   account: text("account"),
+  /** Commission à laquelle l'écriture se rapporte (vide = générale), pour le suivi du budget. */
+  commissionId: text("commission_id").references(() => commissions.id),
   createdBy: text("created_by"),
   createdAt: createdAt(),
 });
@@ -688,6 +690,46 @@ export const solidarityRequests = pgTable(
 );
 
 /**
+ * Budget annuel : préparé en brouillon (lignes générales et lignes des commissions), adopté par le CA, puis verrouillé.
+ * Une modification passe par un budget rectificatif (version suivante) ; à son adoption, l'ancien devient « remplacé ».
+ */
+export const budgetStatus = pgEnum("budget_status", ["BROUILLON", "ADOPTE", "REMPLACE"]);
+
+export const budgets = pgTable(
+  "budgets",
+  {
+    id: id(),
+    year: integer("year").notNull(),
+    version: integer("version").notNull(),
+    status: budgetStatus("status").notNull().default("BROUILLON"),
+    /** Date de la réunion du CA qui l'a adopté. */
+    adoptedOn: date("adopted_on", { mode: "date" }),
+    adoptedBy: text("adopted_by"),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("budgets_year_version_uq").on(t.year, t.version), uniqueIndex("budgets_draft_uq").on(t.year).where(sql`status = 'BROUILLON'`)],
+);
+
+/** Une ligne par compte du livre et par commission (commission vide = budget général). */
+export const budgetLines = pgTable(
+  "budget_lines",
+  {
+    id: id(),
+    budgetId: text("budget_id")
+      .notNull()
+      .references(() => budgets.id),
+    account: text("account").notNull(),
+    commissionId: text("commission_id").references(() => commissions.id),
+    label: text("label"),
+    amount: integer("amount").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("budget_lines_uq").on(t.budgetId, t.account, sql`coalesce(${t.commissionId}, '')`)],
+);
+
+/**
  * Pièces de dépense. Statuts, art. 22 : signée par le Trésorier, visée par le CA, puis payée (écriture au journal).
  * Une pièce rejetée reste dans l'historique ; une nouvelle pièce peut être préparée pour la même aide.
  */
@@ -702,6 +744,8 @@ export const expenses = pgTable(
     amount: integer("amount").notNull(),
     /** Compte du livre de la future écriture de dépense (`LEDGER_ACCOUNTS`). */
     account: text("account"),
+    /** Ligne du budget adopté à laquelle la dépense est imputée (vide = hors budget). */
+    budgetLineId: text("budget_line_id").references(() => budgetLines.id),
     solidarityRequestId: text("solidarity_request_id").references(() => solidarityRequests.id),
     status: expenseStatus("status").notNull().default("A_SIGNER"),
     createdBy: text("created_by").notNull(),
@@ -815,7 +859,17 @@ export const solidarityRequestsRelations = relations(solidarityRequests, ({ one 
   member: one(members, { fields: [solidarityRequests.memberId], references: [members.id] }),
 }));
 
+export const budgetsRelations = relations(budgets, ({ many }) => ({
+  lines: many(budgetLines),
+}));
+
+export const budgetLinesRelations = relations(budgetLines, ({ one }) => ({
+  budget: one(budgets, { fields: [budgetLines.budgetId], references: [budgets.id] }),
+  commission: one(commissions, { fields: [budgetLines.commissionId], references: [commissions.id] }),
+}));
+
 export const expensesRelations = relations(expenses, ({ one }) => ({
+  line: one(budgetLines, { fields: [expenses.budgetLineId], references: [budgetLines.id] }),
   aid: one(solidarityRequests, { fields: [expenses.solidarityRequestId], references: [solidarityRequests.id] }),
   creator: one(members, { fields: [expenses.createdBy], references: [members.id], relationName: "expense_creator" }),
   signer: one(members, { fields: [expenses.signedBy], references: [members.id], relationName: "expense_signer" }),

@@ -31,6 +31,7 @@ export default async function MemberLayout({ children }: { children: React.React
       extra={[
         ...(v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : []),
         ...(v.isDirigeant || v.isComptable ? [{ href: "/finances", label: "Finances" }] : []),
+        ...(v.commissionIds.length ? [{ href: "/membre/budget", label: "Budget de ma commission" }] : []),
       ]}
     >
       {children}

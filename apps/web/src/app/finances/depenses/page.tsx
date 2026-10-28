@@ -4,7 +4,8 @@ import { ActionForm } from "@/components/ui/action-form";
 import { Badge, Card } from "@/components/ui/card";
 import { Input, RequiredLegend, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { accountLabel, EXPENSE_STATUS, expenseList, pieceRef } from "@/lib/finances";
+import { budgetFollowUp } from "@/lib/budget";
+import { accountLabel, EXPENSE_STATUS, expenseBudgetLines, expenseList, pieceRef } from "@/lib/finances";
 import { requireFinances } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 import { approveExpenseAction, payExpenseAction, prepareAidExpenseAction, prepareExpenseAction, rejectExpenseAction, signExpenseAction } from "../actions";
@@ -15,7 +16,9 @@ const who = (m?: { firstNames: string; lastName: string } | null) => (m ? `${m.f
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
   const v = await requireFinances();
-  const { open, closed, aidsWithoutPiece } = await expenseList();
+  const [{ open, closed, aidsWithoutPiece }, budgetLines, { lines: followUp }] = await Promise.all([expenseList(), expenseBudgetLines(), budgetFollowUp(new Date().getFullYear())]);
+  // Reste de la ligne après toutes les pièces en cours (dont celle-ci) : négatif = dépassement.
+  const restOf = (l: { account: string; commissionId: string | null }) => followUp.find((f) => f.account === l.account && f.commissionId === l.commissionId)?.reste;
 
   return (
     <>
@@ -66,6 +69,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
                 <div className="flex flex-col gap-1">
                   <span className="font-bold">{e.label}</span>
                   <span className="text-sm text-muted">Pièce {pieceRef(e.number)} · {accountLabel(e.account)} · préparée par {who(e.creator)} le {formatDate(e.createdAt)}</span>
+                  <BudgetNote line={e.line} rest={e.line ? restOf(e.line) : undefined} />
                   <div className="flex flex-wrap gap-2">
                     {e.signedAt && <Badge>Signée : {who(e.signer)}, {formatDate(e.signedAt)} ✓</Badge>}
                     {e.visaAt && <Badge>Visée : {who(e.approver)}, {formatDate(e.visaAt)} ✓</Badge>}
@@ -113,11 +117,18 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           <h2 className="mb-3 text-xl font-bold">Nouvelle pièce de dépense</h2>
           <ActionForm action={prepareExpenseAction}>
             <RequiredLegend />
-            <div className="grid gap-3 sm:grid-cols-[1fr_280px_200px]">
+            <div className="grid gap-3 sm:grid-cols-[1fr_320px_200px]">
               <Input label="Objet de la dépense" name="label" required placeholder="Ex. : fournitures pour la formation (papier, marqueurs)" />
-              <Select label="Compte" name="account" required defaultValue="">
+              <Select label="Imputation (ligne du budget)" name="imputation" required defaultValue="">
                 <option value="">Choisissez…</option>
-                {accountsFor("DEPENSE").map((k) => <option key={k} value={k}>{LEDGER_ACCOUNTS[k][0]}</option>)}
+                {budgetLines.length > 0 && (
+                  <optgroup label="Budget adopté">
+                    {budgetLines.map((l) => <option key={l.id} value={`line:${l.id}`}>{LEDGER_ACCOUNTS[l.account as keyof typeof LEDGER_ACCOUNTS]?.[0] ?? l.account} · {l.commission?.name ?? "Général"}{l.label ? ` · ${l.label}` : ""}</option>)}
+                  </optgroup>
+                )}
+                <optgroup label="Hors budget">
+                  {accountsFor("DEPENSE").map((k) => <option key={k} value={`acc:${k}`}>Hors budget · {LEDGER_ACCOUNTS[k][0]}</option>)}
+                </optgroup>
               </Select>
               <Input label="Montant (Ar)" name="amount" type="number" min={1} step={1} required />
             </div>
@@ -152,5 +163,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         </table>
       </Card>
     </>
+  );
+}
+
+/** Imputation de la pièce : ligne du budget et reste après les pièces en cours, ou avertissement « hors budget ». */
+function BudgetNote({ line, rest }: { line: { account: string; commission: { name: string } | null } | null; rest?: number }) {
+  if (!line) return <span className="self-start rounded-lg bg-sun-50 px-2 py-1 text-sm font-semibold text-sun-800">Hors budget</span>;
+  const where = `${accountLabel(line.account)} · ${line.commission?.name ?? "Général"}`;
+  if (rest === undefined) return <span className="text-sm text-muted">Budget : {where}</span>;
+  return rest < 0 ? (
+    <span className="self-start rounded-lg bg-flame-50 px-2 py-1 text-sm font-semibold text-flame-800">Budget : {where} · dépassement de {formatAriary(-rest)}</span>
+  ) : (
+    <span className="text-sm text-muted">Budget : {where} · reste {formatAriary(rest)} après les pièces en cours</span>
   );
 }

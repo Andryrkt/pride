@@ -1,0 +1,3 @@
+-- Commission d'une écriture (recettes d'une formation, dépenses imputées à une ligne de commission) pour le suivi du budget.
+ALTER TABLE "ledger_entries" ADD COLUMN "commission_id" text;--> statement-breakpoint
+ALTER TABLE "ledger_entries" ADD CONSTRAINT "ledger_entries_commission_id_commissions_id_fk" FOREIGN KEY ("commission_id") REFERENCES "public"."commissions"("id") ON DELETE no action ON UPDATE no action;

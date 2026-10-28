@@ -28,6 +28,8 @@ async function loadViewer(reqHeaders: Headers) {
     isBureau: roles.some((r) => BUREAU_ROLES.includes(r)),
     isAdmin: roles.includes("ADMIN_TECHNIQUE"),
     isComptable: roles.includes("COMPTABLE"),
+    /** Commissions dont le membre est responsable (il en prépare les lignes du budget). */
+    commissionIds: mandates.flatMap((m) => (m.role === "RESPONSABLE_COMMISSION" && m.commissionId ? [m.commissionId] : [])),
   };
 }
 
@@ -75,6 +77,12 @@ export function canRecordFinances(v: NonNullable<Viewer>) {
 /** Statuts, art. 22 : le Trésorier signe les pièces de dépense, un membre du CA les vise ; l'administrateur supplée (poste vacant). */
 export const canSignExpenses = (v: NonNullable<Viewer>) => v.isAdmin || v.roles.includes("TRESORIER");
 export const canApproveExpenses = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin;
+
+/** Budget : lignes générales par le comptable, le Trésorier, le Coordonnateur ou l'administrateur ; lignes d'une commission aussi par ses responsables. */
+export const canPrepareBudget = (v: NonNullable<Viewer>) => canRecordFinances(v) || v.roles.includes("COORDONNATEUR");
+export const canEditBudgetLine = (v: NonNullable<Viewer>, commissionId: string | null) => canPrepareBudget(v) || (!!commissionId && v.commissionIds.includes(commissionId));
+/** Adoption du budget : conseil d'administration (ou administrateur). */
+export const canAdoptBudget = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin;
 
 export async function requireFinances() {
   const v = await requireMember();

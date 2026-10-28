@@ -16,6 +16,7 @@ export default async function FinancesLayout({ children }: { children: React.Rea
         { href: "/finances", label: "Tableau de bord" },
         { href: "/finances/journal", label: "Journal comptable" },
         { href: "/finances/livre", label: "Livre comptable" },
+        { href: "/finances/budget", label: "Budget" },
         { href: "/finances/depenses", label: "Dépenses à viser" },
         { href: "/finances/encaisser", label: "Encaisser en espèces" },
         { href: "/finances/paiements", label: "Paiements et retards" },
