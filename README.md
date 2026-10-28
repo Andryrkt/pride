@@ -199,6 +199,7 @@ Le test des commissions (`node tests/commissions.e2e.mjs`, base avec démo, peut
 Comptes de démonstration (fictifs), mot de passe PrideDemo2026! :
 
 espace membres : membre@pride.local ;
-espace dirigeants : admin@pride.local.
+espace dirigeants : admin@pride.local ;
+espace SG : secretaire@pride.local ;
 
 Ce que j'ai fait : j'ai lancé le serveur de développement en arrière-plan avec npx next dev --turbopack -p 3001 dans apps/web.

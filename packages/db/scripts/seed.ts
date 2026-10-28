@@ -142,6 +142,11 @@ async function main() {
     await addMandate(comptable.id, "COMPTABLE", new Date("2026-02-01"), null);
     await createLogin(comptable.id, "Comptable Démo", "comptable@pride.local", "PrideDemo2026!");
 
+    // Fiche fictive : pas d'identifiant de démonstration sur la fiche réelle de la Secrétaire générale.
+    const secretaire = await upsertMember({ lastName: "Démo", firstNames: "Secrétaire générale", joinedAt: new Date("2026-02-01") });
+    await addMandate(secretaire.id, "SECRETAIRE_GENERALE", new Date("2026-10-01"), null);
+    await createLogin(secretaire.id, "Secrétaire générale Démo", "secretaire@pride.local", "PrideDemo2026!");
+
     const fanja = await upsertMember({ lastName: "RASOANAIVO", firstNames: "Fanja (démo)", phone: "034 12 345 67", address: "Analamahitsy, Antananarivo (fictif)", joinedAt: new Date("2026-03-01") });
     await createLogin(fanja.id, "Fanja (démo)", "membre@pride.local", "PrideDemo2026!");
     // Cotisations de mars à septembre payées, octobre à payer
@@ -227,6 +232,7 @@ async function main() {
     }
     console.log("  admin@pride.local / PrideDemo2026!   (espace dirigeants)");
     console.log("  comptable@pride.local / PrideDemo2026! (espace Finances)");
+    console.log("  secretaire@pride.local / PrideDemo2026! (Secrétaire générale)");
     console.log("  membre@pride.local / PrideDemo2026!  (espace membres)");
   }
 
