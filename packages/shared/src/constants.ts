@@ -62,6 +62,9 @@ export const MAJORITES = {
 
 export type Majorite = keyof typeof MAJORITES;
 
+/** Autodiscipline : on commence petit, trois habitudes en cours au maximum. */
+export const MAX_HABITUDES = 3;
+
 /** Les responsables de commission sont désignés pour un an. */
 export const DUREE_MANDAT_COMMISSION = 1;
 

@@ -120,6 +120,13 @@
       "when": 1793262127197,
       "tag": "0016_documents_officiels",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793682861216,
+      "tag": "0017_autodiscipline",
+      "breakpoints": true
     }
   ]
 }

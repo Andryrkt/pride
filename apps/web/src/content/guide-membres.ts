@@ -141,6 +141,22 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     links: [{ label: "Messagerie", href: "/membre/messages" }],
   },
   {
+    slug: "autodiscipline",
+    title: "Autodiscipline : objectifs, habitudes et bilans",
+    summary: "Un espace personnel pour organiser son temps, tenir ses objectifs et prendre de bonnes habitudes.",
+    steps: [
+      { text: "Ouvrez « Autodiscipline » et ajoutez une habitude facile à tenir, par exemple « Lire 10 minutes ». Commencez par une seule : vous pourrez en suivre trois au maximum." },
+      { text: "Chaque jour, cliquez sur « Fait aujourd'hui ». Si vous avez oublié de cocher la veille, cliquez sur « Fait hier aussi »." },
+      { text: "Ajoutez vos objectifs, avec une date limite si vous le souhaitez, puis marquez-les « Atteint » ou « Abandonner »." },
+      { text: "Faites votre bilan quand vous le voulez : choisissez « Aujourd'hui » ou « Cette semaine », répondez aux questions, puis enregistrez." },
+    ],
+    tips: [
+      "Cet espace est affiché à vous seul : il ne figure dans aucune page des dirigeants et n'a aucun effet sur votre statut de membre.",
+      "Rater un jour n'efface rien : recommencez simplement le lendemain.",
+    ],
+    links: [{ label: "Autodiscipline", href: "/membre/discipline" }],
+  },
+  {
     slug: "assemblee-generale",
     title: "Assemblée générale et consultations en ligne",
     summary: "L'AG est l'organe suprême de PRIDe ; les consultations recueillent l'avis des membres entre deux AG.",

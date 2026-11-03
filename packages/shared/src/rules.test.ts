@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
+import { addDays, habitStreak, localDay, weekStart, assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
 import { applicationSchema } from "./schemas";
 
 describe("règles des statuts", () => {
@@ -65,6 +65,18 @@ describe("règles des statuts", () => {
     expect(resolutionAdopted("DEUX_TIERS", { pour: 13, contre: 0, abstention: 0 }, 21)).toBe(false);
     expect(voteValid({ pour: 15, contre: 6, abstention: 1 }, 21)).toBe(false);
     expect(resolutionAdopted("SIMPLE", { pour: 15, contre: 6, abstention: 1 }, 21)).toBe(false);
+  });
+  it("autodiscipline : jours et séries", () => {
+    // 22 h à Paris ou UTC, c'est déjà le lendemain à Madagascar (UTC+3)
+    expect(localDay(new Date("2026-11-03T22:00:00Z"))).toBe("2026-11-04");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+    expect(weekStart("2026-11-03")).toBe("2026-11-02"); // mardi
+    expect(weekStart("2026-11-08")).toBe("2026-11-02"); // dimanche
+    expect(weekStart("2026-11-02")).toBe("2026-11-02"); // lundi
+    expect(habitStreak([], "2026-11-03")).toBe(0);
+    expect(habitStreak(["2026-11-03", "2026-11-02", "2026-10-31"], "2026-11-03")).toBe(2);
+    expect(habitStreak(["2026-11-02", "2026-11-01"], "2026-11-03")).toBe(2); // pas encore coché aujourd'hui
+    expect(habitStreak(["2026-11-01"], "2026-11-03")).toBe(0); // hier manqué
   });
   it("mineur", () => {
     expect(isMinor(new Date(2010, 0, 1), new Date(2026, 9, 14))).toBe(true);

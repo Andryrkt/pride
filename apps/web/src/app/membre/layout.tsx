@@ -24,6 +24,7 @@ export default async function MemberLayout({ children }: { children: React.React
         { href: "/membre/cotisations", label: "Mes cotisations" },
         { href: "/membre/formations", label: "Formations et offres" },
         { href: "/membre/competences", label: "Compétences et commissions" },
+        { href: "/membre/discipline", label: "Autodiscipline" },
         { href: "/membre/ag", label: "Assemblée générale" },
         { href: "/membre/messages", label: "Messagerie", badge: convs.filter(unreadForMember).length },
         { href: "/membre/profil", label: "Mon profil" },

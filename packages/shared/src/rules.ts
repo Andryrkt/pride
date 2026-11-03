@@ -134,6 +134,34 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/\s/g, "").replace(/^\+261/, "0");
 }
 
+/** Jour en cours à Madagascar (« 2026-11-03 »), quel que soit le fuseau du serveur. */
+export function localDay(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Indian/Antananarivo" }).format(now);
+}
+
+export function addDays(day: string, n: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Lundi de la semaine du jour donné. */
+export function weekStart(day: string): string {
+  return addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
+}
+
+/** Jours d'affilée d'une habitude. Tant que la journée n'est pas finie, ne pas avoir encore coché ne casse pas la série. */
+export function habitStreak(days: string[], today: string): number {
+  const done = new Set(days);
+  let d = done.has(today) ? today : addDays(today, -1);
+  let n = 0;
+  while (done.has(d)) {
+    n++;
+    d = addDays(d, -1);
+  }
+  return n;
+}
+
 /** Numéro de membre « PRIDE2026100001 » : année, mois d'entrée, puis rang d'arrivée dans le mois (le compteur repart chaque mois). */
 export function memberNumber(date: Date, seq: number): string {
   return `PRIDE${memberCounterPeriod(date)}${String(seq).padStart(4, "0")}`;

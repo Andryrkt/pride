@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { UserRound } from "lucide-react";
 import Link from "next/link";
-import { asc, desc, db, eq, gte, and, inArray, schema } from "@pride/db";
-import { canVoteAtAG, formatAriary, OFFER_TYPES, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
+import { asc, desc, db, eq, gte, and, inArray, isNull, schema } from "@pride/db";
+import { canVoteAtAG, formatAriary, localDay, OFFER_TYPES, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ButtonLink, buttonVariants } from "@/components/ui/button";
 import { Badge, Card, Eyebrow } from "@/components/ui/card";
@@ -27,7 +27,7 @@ export default async function MemberDashboard() {
   const { member } = await requireMember();
   await ensureDues(member);
   const now = new Date();
-  const [dues, posts, nextTraining, nextEvent, nextAg, aids, offers, polls, myVotes] = await Promise.all([
+  const [dues, posts, nextTraining, nextEvent, nextAg, aids, offers, polls, myVotes, habits] = await Promise.all([
     listDues(member.id),
     db.query.posts.findMany({ orderBy: desc(schema.posts.publishedAt), limit: 3 }),
     db.query.posts.findFirst({ where: and(eq(schema.posts.type, "FORMATION"), gte(schema.posts.eventAt, now)), orderBy: asc(schema.posts.eventAt) }),
@@ -37,6 +37,10 @@ export default async function MemberDashboard() {
     db.query.offers.findMany({ where: eq(schema.offers.status, "PUBLIEE"), orderBy: desc(schema.offers.createdAt), limit: 3 }),
     openConsultations(),
     db.query.consultationVoters.findMany({ where: eq(schema.consultationVoters.memberId, member.id) }),
+    db.query.habits.findMany({
+      where: and(eq(schema.habits.memberId, member.id), isNull(schema.habits.stoppedAt)),
+      with: { checks: { where: eq(schema.habitChecks.day, localDay(now)) } },
+    }),
   ]);
   // Consultations ouvertes où le membre peut encore voter
   const toVote = canVoteAtAG(member) ? polls.filter((c) => !myVotes.some((v) => v.consultationId === c.id)) : [];
@@ -125,6 +129,15 @@ export default async function MemberDashboard() {
               <ButtonLink href={next.type === "FORMATION" ? "/membre/formations" : "/membre/actualites"} variant="outline">Voir</ButtonLink>
             </Card>
           )}
+          <Card className="flex flex-wrap items-center justify-between gap-3 p-[22px]">
+            <div className="min-w-0">
+              <Eyebrow>Autodiscipline</Eyebrow>
+              <div className="text-[17px] font-bold">
+                {habits.length ? `${habits.filter((h) => h.checks.length).length} habitude(s) sur ${habits.length} faite(s) aujourd'hui` : "Choisissez une petite habitude pour commencer"}
+              </div>
+            </div>
+            <ButtonLink href="/membre/discipline" variant="outline">Ouvrir</ButtonLink>
+          </Card>
           {toVote.length > 0 ? (
             <Card className="flex flex-wrap items-center justify-between gap-3 p-[22px]">
               <div className="min-w-0">

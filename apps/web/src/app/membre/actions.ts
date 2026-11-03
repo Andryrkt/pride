@@ -10,6 +10,7 @@ import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
 import { askHelp, closeOffer, expressInterest, NetworkError, proposeOffer, requestCommission, sendProposal } from "@/lib/network";
 import { handOff, HUMAN_RECIPIENTS, MENU_CHIPS, MessagingError, postMemberMessage } from "@/lib/messaging";
 import { ConsultationError, voteConsultation } from "@/lib/consultations";
+import { addGoal, addHabit, closeGoal, DisciplineError, saveReview, stopHabit, toggleCheck } from "@/lib/discipline";
 import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import type { FormState } from "@/lib/utils";
 
@@ -229,4 +230,51 @@ export async function voteConsultationAction(consultationId: string, _prev: Form
   }
   revalidatePath("/membre", "layout");
   return { ok: true, message: "Merci, votre vote est enregistré." };
+}
+
+// Autodiscipline : chaque action ne touche que les données du membre connecté.
+async function disciplineAction(fn: (memberId: string) => Promise<unknown>, message: string): Promise<FormState> {
+  const v = await requireMember();
+  try {
+    await fn(v.member.id);
+  } catch (e) {
+    if (e instanceof DisciplineError) return { ok: false, message: e.message };
+    throw e;
+  }
+  revalidatePath("/membre/discipline");
+  revalidatePath("/membre");
+  return { ok: true, message };
+}
+
+export async function addHabitAction(_p: FormState, f: FormData): Promise<FormState> {
+  return disciplineAction((id) => addHabit(id, String(f.get("title") ?? "")), "Habitude ajoutée.");
+}
+
+export async function addGoalAction(_p: FormState, f: FormData): Promise<FormState> {
+  return disciplineAction((id) => addGoal(id, String(f.get("title") ?? ""), String(f.get("dueOn") ?? "")), "Objectif ajouté.");
+}
+
+export async function saveReviewAction(kind: "JOUR" | "SEMAINE", _p: FormState, f: FormData): Promise<FormState> {
+  const text = (k: string) => String(f.get(k) ?? "");
+  return disciplineAction((id) => saveReview(id, kind, { wins: text("wins"), blocks: text("blocks"), priority: text("priority") }), "Bilan enregistré.");
+}
+
+export async function toggleCheckAction(habitId: string, day: string) {
+  const v = await requireMember();
+  await toggleCheck(v.member.id, habitId, day);
+  revalidatePath("/membre/discipline");
+  revalidatePath("/membre");
+}
+
+export async function stopHabitAction(habitId: string) {
+  const v = await requireMember();
+  await stopHabit(v.member.id, habitId);
+  revalidatePath("/membre/discipline");
+  revalidatePath("/membre");
+}
+
+export async function closeGoalAction(goalId: string, status: "ATTEINT" | "ABANDONNE") {
+  const v = await requireMember();
+  await closeGoal(v.member.id, goalId, status);
+  revalidatePath("/membre/discipline");
 }

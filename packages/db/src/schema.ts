@@ -803,6 +803,73 @@ export const counters = pgTable("counters", {
 });
 
 // ---------------------------------------------------------------------------
+// Autodiscipline : données personnelles du membre, affichées à lui seul
+// ---------------------------------------------------------------------------
+
+export const goalStatus = pgEnum("goal_status", ["EN_COURS", "ATTEINT", "ABANDONNE"]);
+export const reviewKind = pgEnum("review_kind", ["JOUR", "SEMAINE"]);
+
+export const goals = pgTable(
+  "discipline_goals",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    dueOn: date("due_on", { mode: "string" }),
+    status: goalStatus("status").notNull().default("EN_COURS"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("discipline_goals_member_idx").on(t.memberId)],
+);
+
+export const habits = pgTable(
+  "discipline_habits",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("discipline_habits_member_idx").on(t.memberId)],
+);
+
+export const habitChecks = pgTable(
+  "discipline_habit_checks",
+  {
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => habits.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.habitId, t.day] })],
+);
+
+/** Un bilan par jour ou par semaine, au choix du membre ; `periodStart` est le jour, ou le lundi de la semaine. */
+export const reviews = pgTable(
+  "discipline_reviews",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    kind: reviewKind("kind").notNull(),
+    periodStart: date("period_start", { mode: "string" }).notNull(),
+    wins: text("wins"),
+    blocks: text("blocks"),
+    priority: text("priority"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("discipline_reviews_period_uq").on(t.memberId, t.kind, t.periodStart)],
+);
+
+// ---------------------------------------------------------------------------
 // Relations (requêtes « db.query.* »)
 // ---------------------------------------------------------------------------
 
@@ -930,4 +997,10 @@ export const exclusionProceduresRelations = relations(exclusionProcedures, ({ on
 
 export const resolutionsRelations = relations(resolutions, ({ one }) => ({
   assembly: one(assemblies, { fields: [resolutions.assemblyId], references: [assemblies.id] }),
+}));
+
+export const habitsRelations = relations(habits, ({ many }) => ({ checks: many(habitChecks) }));
+
+export const habitChecksRelations = relations(habitChecks, ({ one }) => ({
+  habit: one(habits, { fields: [habitChecks.habitId], references: [habits.id] }),
 }));
