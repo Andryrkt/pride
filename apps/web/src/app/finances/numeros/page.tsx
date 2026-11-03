@@ -23,7 +23,7 @@ export default async function PaymentAccountsPage({ searchParams }: { searchPara
       {canManage ? (
         <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">Vérifiez chaque chiffre : l'argent des membres partira vers ce numéro. Chaque changement est tracé et signalé par e-mail à l'association.</p>
       ) : (
-        <p className="rounded-xl bg-paper px-4 py-3">Seuls le Trésorier, le conseil d'administration et l'administrateur peuvent modifier ces numéros.</p>
+        <p className="rounded-xl bg-paper px-4 py-3">Seuls le Trésorier et le conseil d'administration peuvent modifier ces numéros.</p>
       )}
       {canManage && <RequiredLegend />}
       <div className="grid gap-5 lg:grid-cols-3">

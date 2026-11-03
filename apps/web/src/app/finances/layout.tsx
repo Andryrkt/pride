@@ -3,7 +3,7 @@ import { requireFinances } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-/** Espace Finances : le comptable n'a accès qu'à lui ; les dirigeants y viennent depuis leur espace (lecture seule sauf Trésorier et administrateur). */
+/** Espace Finances : le comptable n'a accès qu'à lui ; les dirigeants y viennent depuis leur espace (lecture seule sauf Trésorier). */
 export default async function FinancesLayout({ children }: { children: React.ReactNode }) {
   const v = await requireFinances();
   return (
@@ -25,9 +25,10 @@ export default async function FinancesLayout({ children }: { children: React.Rea
       ]}
       extra={[...(v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : []), { href: "/membre", label: "Mon espace membre" }]}
     >
+      {v.actingTreasurer && <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">Poste de Trésorier vacant : vous le remplacez temporairement, jusqu'à la désignation d'un Trésorier.</p>}
       {!v.canRecord && (
         <p className="rounded-xl bg-sun-50 px-4 py-3 text-sun-800">
-          Lecture seule : seuls le comptable, le Trésorier et l'administrateur enregistrent des opérations.{v.canApprove ? " Membre du CA : vous visez les dépenses dans « Dépenses à viser »." : ""}
+          Lecture seule : seuls le comptable et le Trésorier enregistrent des opérations.{v.canApprove ? " Membre du CA : vous visez les dépenses dans « Dépenses à viser »." : ""}
         </p>
       )}
       {children}

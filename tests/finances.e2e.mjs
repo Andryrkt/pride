@@ -15,6 +15,7 @@ const log = (...a) => console.log("✔", ...a);
 const fail = (m) => { throw new Error(m); };
 const run = Date.now().toString(36).toUpperCase();
 let treasurerMandate;
+let caTreasurerMandate;
 
 async function login(email, landing) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
@@ -115,18 +116,28 @@ try {
   if (await aidPiece(treasurer).getByRole("button", { name: "Viser (CA)" }).count()) fail("le Trésorier peut viser");
 
   const admin = await login("admin@pride.local", "/membre");
+  // L'administrateur n'a aucun droit financier : il consulte seulement.
   await admin.goto(`${BASE}/finances/depenses`);
-  await aidPiece(admin).getByRole("button", { name: "Viser (CA)" }).click();
-  await admin.getByText(/visée : elle peut être payée/).waitFor();
-  // L'administrateur signe la seconde pièce (Trésorier suppléé) : il ne peut pas la viser lui-même, il la rejette.
-  await supplyPiece(admin).getByRole("button", { name: "Signer (Trésorier)" }).click();
-  await admin.getByText(/signée : elle attend le visa/).waitFor();
-  await supplyPiece(admin).getByText("le visa revient à un autre membre du CA").waitFor();
-  if (await supplyPiece(admin).getByRole("button", { name: "Viser (CA)" }).count()) fail("le signataire peut viser sa propre pièce");
-  await supplyPiece(admin).getByText("Rejeter", { exact: true }).click();
-  await supplyPiece(admin).getByLabel("Motif").fill("facture manquante (test)");
-  await supplyPiece(admin).getByRole("button", { name: "Rejeter la pièce" }).click();
-  await admin.getByText(/rejetée/).first().waitFor();
+  await admin.getByText("Lecture seule").waitFor();
+  await aidPiece(admin).waitFor();
+  if (await admin.getByRole("button", { name: /Viser \(CA\)|Signer \(Trésorier\)|Enregistrer le paiement|Préparer la pièce/ }).count()) fail("l'administrateur peut agir sur une dépense");
+
+  const ca = await login("ca@pride.local", "/membre");
+  await ca.goto(`${BASE}/finances/depenses`);
+  await aidPiece(ca).getByRole("button", { name: "Viser (CA)" }).click();
+  await ca.getByText(/visée : elle peut être payée/).waitFor();
+  // Un membre du CA qui a aussi le mandat de Trésorier ne vise pas sa propre signature : il rejette la pièce.
+  const { rows: [{ id: caId }] } = await db.query(`select m.id from members m join "user" u on u.id = m.user_id where u.email = 'ca@pride.local'`);
+  caTreasurerMandate = (await db.query("insert into mandates (member_id, role, starts_at) values ($1, 'TRESORIER', current_date) returning id", [caId])).rows[0].id;
+  await ca.reload();
+  await supplyPiece(ca).getByRole("button", { name: "Signer (Trésorier)" }).click();
+  await ca.getByText(/signée : elle attend le visa/).waitFor();
+  await supplyPiece(ca).getByText("le visa revient à un autre membre du CA").waitFor();
+  if (await supplyPiece(ca).getByRole("button", { name: "Viser (CA)" }).count()) fail("le signataire peut viser sa propre pièce");
+  await supplyPiece(ca).getByText("Rejeter", { exact: true }).click();
+  await supplyPiece(ca).getByLabel("Motif").fill("facture manquante (test)");
+  await supplyPiece(ca).getByRole("button", { name: "Rejeter la pièce" }).click();
+  await ca.getByText(/rejetée/).first().waitFor();
 
   await comptable.goto(`${BASE}/finances/depenses`);
   await aidPiece(comptable).getByRole("button", { name: "Enregistrer le paiement" }).click();
@@ -166,6 +177,7 @@ try {
   process.exitCode = 1;
 } finally {
   if (treasurerMandate) await db.query("delete from mandates where id = $1", [treasurerMandate]);
+  if (caTreasurerMandate) await db.query("delete from mandates where id = $1", [caTreasurerMandate]);
   await db.end();
   await browser.close();
 }

@@ -17,7 +17,7 @@ export const DUTIES: Partial<Record<MandateRole, { ref: string; duties: string[]
   COORDONNATEUR: { ref: "Statuts, art. 15 et 17", duties: ["Diriger le fonctionnement courant", "Coordonner les commissions", "Ordonner les dépenses du budget adopté", "Rendre compte au CA chaque année"] },
   SECRETAIRE_GENERALE: { ref: "Bureau exécutif, art. 14", duties: ["Tenir le registre des membres", "Envoyer les convocations", "Rédiger et archiver les procès-verbaux", "Gérer les documents officiels"] },
   TRESORIER: { ref: "Statuts, art. 20 à 23", duties: ["Tenir la comptabilité au jour le jour", "Signer les pièces de dépense", "Verser les aides accordées", "Présenter le rapport financier à l'AG"] },
-  ADMIN_TECHNIQUE: { ref: "Désigné par le conseil d'administration", duties: ["Gérer les comptes et les rôles dans l'application", "Suppléer un poste vacant pour les opérations (signature des pièces)"] },
+  ADMIN_TECHNIQUE: { ref: "Désigné par le conseil d'administration", duties: ["Gérer les comptes et les rôles dans l'application"] },
 };
 
 const NO_NUMBERS: Todo = { title: "Renseigner les numéros mobile money de l'association", ref: "Les membres ne peuvent pas encore payer par mobile money", href: "/finances/numeros", cta: "Renseigner" };
@@ -25,7 +25,7 @@ const NO_NUMBERS: Todo = { title: "Renseigner les numéros mobile money de l'ass
 const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
 
 /**
- * Tâches du moment selon les rôles du dirigeant (l'administrateur voit celles de tous les rôles).
+ * Tâches du moment selon les rôles du dirigeant (l'administrateur voit celles de tous les rôles, sauf les tâches financières).
  * Chaque tâche n'apparaît que s'il y a quelque chose à faire.
  */
 export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
@@ -33,7 +33,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
   const ca = v.isAdmin || v.isCA;
   const sg = has("SECRETAIRE_GENERALE");
   const coord = has("COORDONNATEUR");
-  const tres = has("TRESORIER");
+  const tres = v.roles.includes("TRESORIER");
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 86_400_000);
 
@@ -83,15 +83,15 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     for (const x of exclusions.filter((x) => x.hearingAt <= now)) {
       add(true, { title: `Délibérer sur l'exclusion de ${x.member.firstNames} ${x.member.lastName}`, ref: "Après l'audition · 2/3 des présents", href: `/dirigeants/membres/${x.memberId}`, cta: "Délibérer" });
     }
-    add(exp("A_VISER"), { title: `${plural(exp("A_VISER"), "dépense", "dépenses")} à viser`, ref: "Pièces signées par le Trésorier, art. 22", href: "/finances/depenses", cta: "Viser" });
-    for (const b of drafts) add(true, { title: `Adopter le budget ${b.year}${b.version > 1 ? " (rectificatif)" : ""}`, ref: "Brouillon préparé par le bureau et les commissions", href: `/finances/budget?annee=${b.year}`, cta: "Ouvrir" });
-    add(!numbers, NO_NUMBERS);
-    add(!treasurer, { title: "Désigner un Trésorier", ref: "Bureau exécutif incomplet, art. 14 et 16", href: "/dirigeants/membres", cta: "Registre" });
+    add(v.isCA && exp("A_VISER"), { title: `${plural(exp("A_VISER"), "dépense", "dépenses")} à viser`, ref: "Pièces signées par le Trésorier, art. 22", href: "/finances/depenses", cta: "Viser" });
+    for (const b of drafts) add(v.isCA, { title: `Adopter le budget ${b.year}${b.version > 1 ? " (rectificatif)" : ""}`, ref: "Brouillon préparé par le bureau et les commissions", href: `/finances/budget?annee=${b.year}`, cta: "Ouvrir" });
+    add(v.isCA && !numbers, NO_NUMBERS);
+    add(!treasurer, { title: "Désigner un Trésorier", ref: "Bureau exécutif incomplet, art. 14 et 16 · le Coordonnateur remplace temporairement", href: "/dirigeants/membres", cta: "Registre" });
   }
 
   if (coord) {
     add(joins, { title: `${plural(joins, "demande", "demandes")} d'entrée en commission`, ref: "Accepter ou refuser sur la page de la commission", href: "/dirigeants/commissions", cta: "Ouvrir" });
-    for (const b of drafts) add(true, { title: `Compléter le budget ${b.year}`, ref: "Lignes générales et lignes des commissions", href: `/finances/budget?annee=${b.year}`, cta: "Ouvrir" });
+    for (const b of drafts) add(v.roles.includes("COORDONNATEUR"), { title: `Compléter le budget ${b.year}`, ref: "Lignes générales et lignes des commissions", href: `/finances/budget?annee=${b.year}`, cta: "Ouvrir" });
     add(unread("COORDONNATEUR"), { title: `${plural(unread("COORDONNATEUR"), "message", "messages")} au Coordonnateur`, ref: "Messagerie des membres", href: "/dirigeants/messages", cta: "Répondre" });
   }
 
@@ -101,8 +101,8 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     add(exp("A_SIGNER"), { title: `${plural(exp("A_SIGNER"), "pièce", "pièces")} de dépense à signer`, ref: "Statuts, art. 22", href: "/finances/depenses", cta: "Signer" });
     add(exp("A_PAYER"), { title: `${plural(exp("A_PAYER"), "dépense visée", "dépenses visées")} à payer`, ref: "Écriture au journal au paiement", href: "/finances/depenses", cta: "Payer" });
     add(pieces?.aidsWithoutPiece.length, { title: `${plural(pieces?.aidsWithoutPiece.length ?? 0, "aide accordée", "aides accordées")} : pièce à préparer`, ref: "Aide de solidarité, RI art. 6", href: "/finances/depenses", cta: "Préparer" });
-    add(unread("TRESORIER"), { title: `${plural(unread("TRESORIER"), "message", "messages")} au Trésorier`, ref: "Messagerie des membres", href: "/dirigeants/messages", cta: "Répondre" });
   }
+  add(has("TRESORIER") && unread("TRESORIER"), { title: `${plural(unread("TRESORIER"), "message", "messages")} au Trésorier`, ref: "Messagerie des membres", href: "/dirigeants/messages", cta: "Répondre" });
 
   // Tous les dirigeants du CA et du bureau
   add((ca || v.isBureau) && aids, { title: `${plural(aids, "demande", "demandes")} d'aide de solidarité`, ref: "50 000 Ar au membre, 25 000 Ar à la famille", href: "/dirigeants/solidarite", cta: "Décider" });

@@ -70,7 +70,7 @@ export default async function DirigeantsHome() {
           {roles.map((r) => (
             <Card key={r} className="flex flex-col gap-2">
               <h2 className="text-xl font-bold">Vos responsabilités</h2>
-              <p className="text-sm text-muted">{ROLE_LABELS[r]} · {DUTIES[r as MandateRole]!.ref}</p>
+              <p className="text-sm text-muted">{r === "TRESORIER" && v.actingTreasurer ? "Trésorier par intérim (poste vacant)" : ROLE_LABELS[r]} · {DUTIES[r as MandateRole]!.ref}</p>
               <ul className="list-disc pl-5 text-[15px]">{DUTIES[r as MandateRole]!.duties.map((d) => <li key={d}>{d}</li>)}</ul>
             </Card>
           ))}

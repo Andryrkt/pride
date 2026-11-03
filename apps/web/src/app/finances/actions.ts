@@ -8,10 +8,10 @@ import { addEntry, approveExpense, correctEntry, FinanceError, payExpense, piece
 import { audit, canManagePaymentAccounts, requireFinances } from "@/lib/session";
 import type { FormState } from "@/lib/utils";
 
-/** Seuls le comptable, le Trésorier et l'administrateur enregistrent ; les autres dirigeants consultent. */
+/** Seuls le comptable et le Trésorier enregistrent ; les autres dirigeants consultent. */
 async function recorder() {
   const v = await requireFinances();
-  if (!v.canRecord) throw new FinanceError("Lecture seule : seuls le comptable, le Trésorier et l'administrateur enregistrent des opérations.");
+  if (!v.canRecord) throw new FinanceError("Lecture seule : seuls le comptable et le Trésorier enregistrent des opérations.");
   return v;
 }
 
@@ -96,7 +96,7 @@ export async function rejectDeclaredPaymentAction(id: string, _p: FormState, f: 
 
 async function accountsManager(provider: PaymentProviderId) {
   const v = await requireFinances();
-  if (!canManagePaymentAccounts(v)) throw new FinanceError("Réservé au Trésorier, au conseil d'administration et à l'administrateur.");
+  if (!canManagePaymentAccounts(v)) throw new FinanceError("Réservé au Trésorier et au conseil d'administration.");
   if (!(provider in PAYMENT_PROVIDERS)) throw new FinanceError("Opérateur inconnu.");
   return v;
 }

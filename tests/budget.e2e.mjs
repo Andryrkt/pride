@@ -67,16 +67,20 @@ try {
   if (await leader.getByText(`Fournitures ${run}`).count()) fail("le responsable voit les lignes générales du brouillon");
   log("responsable de commission : ligne de sa commission saisie, rien d'autre");
 
-  // 3. Adoption par le CA (administrateur) : verrouillage, l'ancienne version est remplacée
+  // 3. Adoption par le CA, pas par l'administrateur : verrouillage, l'ancienne version est remplacée
   const admin = await login("admin@pride.local", "/membre");
   await admin.goto(`${BASE}/finances/budget?annee=${year}`);
-  await admin.getByRole("button", { name: "Adopter le budget" }).click();
-  await admin.getByText(/adopté : il est maintenant verrouillé/).waitFor();
+  await admin.getByRole("heading", { name: /^Brouillon :/ }).waitFor();
+  if (await admin.getByRole("button", { name: "Adopter le budget" }).count()) fail("l'administrateur peut adopter le budget");
+  const ca = await login("ca@pride.local", "/membre");
+  await ca.goto(`${BASE}/finances/budget?annee=${year}`);
+  await ca.getByRole("button", { name: "Adopter le budget" }).click();
+  await ca.getByText(/adopté : il est maintenant verrouillé/).waitFor();
   const { rows: versions } = await db.query("select version, status from budgets where year = $1 order by version", [year]);
   if (versions.filter((b) => b.status === "ADOPTE").length !== 1 || versions.at(-1).status !== "ADOPTE") fail(`versions : ${JSON.stringify(versions)}`);
   if (previous && versions.find((b) => b.version === previous).status !== "REMPLACE") fail("l'ancien budget n'est pas « remplacé »");
-  if (await admin.getByRole("button", { name: "Enregistrer la ligne" }).count()) fail("un budget adopté reste modifiable");
-  await admin.locator("tr", { hasText: `Ateliers ${run}` }).getByText(commissionName).waitFor();
+  if (await ca.getByRole("button", { name: "Enregistrer la ligne" }).count()) fail("un budget adopté reste modifiable");
+  await ca.locator("tr", { hasText: `Ateliers ${run}` }).getByText(commissionName).waitFor();
   log("CA : budget adopté et verrouillé", previous ? `(rectificatif de la version ${previous})` : "");
 
   // 4. Dépense imputée à une ligne : avertissement de dépassement, engagé visible dans le suivi

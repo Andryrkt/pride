@@ -126,7 +126,7 @@ Les fichiers les plus importants :
 
 ## Ouvrir le paiement par mobile money
 
-Aucun contrat marchand ni accès technique n'est nécessaire. Le Trésorier, un membre du CA ou l'administrateur renseigne le numéro et le titulaire de chaque opérateur dans Finances › Numéros mobile money. Tant qu'aucun numéro n'est renseigné, les membres sont invités à payer en espèces.
+Aucun contrat marchand ni accès technique n'est nécessaire. Le Trésorier ou un membre du CA renseigne le numéro et le titulaire de chaque opérateur dans Finances › Numéros mobile money. Tant qu'aucun numéro n'est renseigné, les membres sont invités à payer en espèces.
 
 ---
 
@@ -195,6 +195,6 @@ Comptes de démonstration (fictifs), mot de passe PrideDemo2026! :
 
 espace membres : membre@pride.local ;
 espace dirigeants : admin@pride.local ;
-espace SG : secretaire@pride.local ;
+espace SG : secretaire@pride.local ; Coordonnateur : coordonnateur@pride.local ; CA : ca@pride.local ;
 
 Ce que j'ai fait : j'ai lancé le serveur de développement en arrière-plan avec npx next dev --turbopack -p 3001 dans apps/web.

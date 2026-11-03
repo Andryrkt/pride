@@ -132,13 +132,14 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
     title: "Numéros mobile money et paiements à vérifier",
     summary: "Les membres envoient l'argent aux numéros de l'association et le déclarent ; le comptable ou le Trésorier le vérifie avant le reçu.",
     steps: [
-      { text: "Dans Finances › « Numéros mobile money », renseignez le numéro et le nom du titulaire pour chaque opérateur. Sans numéro, l'opérateur n'est pas proposé aux membres. Réservé au Trésorier, au CA et à l'administrateur." },
+      { text: "Dans Finances › « Numéros mobile money », renseignez le numéro et le nom du titulaire pour chaque opérateur. Sans numéro, l'opérateur n'est pas proposé aux membres. Réservé au Trésorier et au CA." },
       { text: "À chaque déclaration, le comptable et le Trésorier reçoivent un e-mail. Ouvrez Finances › « Paiements à vérifier »." },
       { text: "Sur le compte de l'association, contrôlez la référence et le montant. La capture jointe ne remplace pas ce contrôle." },
       { text: "Si l'argent est bien arrivé, cliquez sur « Argent reçu : confirmer » : le reçu est créé et la recette s'inscrit au journal." },
       { text: "Sinon, ouvrez « Refuser ce paiement » et indiquez le motif : le membre est prévenu et ses mois redeviennent à payer." },
     ],
     tips: [
+      "Tant que le poste de Trésorier est vacant, le Coordonnateur le remplace, ici comme pour la signature des pièces de dépense.",
       "Personne ne vérifie son propre paiement : une autre personne doit s'en charger.",
       "Chaque changement de numéro est tracé et signalé par e-mail à l'association.",
     ],

@@ -18,6 +18,7 @@ const year = 3000 + (Date.now() % 5000);
 const LABEL_OK = `Cotisation janvier ${year}`;
 const LABEL_KO = `Cotisation février ${year}`;
 let selfPayment;
+const tempMandates = [];
 let savedAirtel;
 
 async function login(email, landing) {
@@ -53,7 +54,7 @@ try {
   const memberId = await memberOf("membre@pride.local");
   await db.query(`insert into dues (member_id, kind, period, amount) values ($1, 'COTISATION', $2, 10000), ($1, 'COTISATION', $3, 10000)`, [memberId, `${year}-01`, `${year}-02`]);
 
-  // 1. Numéros officiels : le comptable ne les change pas, l'administrateur si ; un opérateur sans numéro n'est pas proposé
+  // 1. Numéros officiels : ni le comptable ni l'administrateur ne les changent, le CA si ; un opérateur sans numéro n'est pas proposé
   const comptable = await login("comptable@pride.local", "/finances");
   await comptable.goto(`${BASE}/finances/numeros`);
   await comptable.getByText("Seuls le Trésorier").waitFor();
@@ -69,22 +70,28 @@ try {
 
   const admin = await login("admin@pride.local", "/membre");
   await admin.goto(`${BASE}/finances/numeros`);
-  await admin.fill("#number-AIRTEL_MONEY", "12345");
-  await admin.fill("#holder-AIRTEL_MONEY", "PRIDe (fictif)");
-  await admin.locator("form", { has: admin.locator("#number-AIRTEL_MONEY") }).getByRole("button", { name: "Enregistrer" }).click();
-  await admin.getByText("Numéro de téléphone malgache invalide").first().waitFor();
-  await admin.fill("#number-AIRTEL_MONEY", "033 00 000 00");
-  await admin.locator("form", { has: admin.locator("#number-AIRTEL_MONEY") }).getByRole("button", { name: "Enregistrer" }).click();
-  await admin.getByText("Numéro Airtel Money enregistré").waitFor();
+  await admin.getByText("Seuls le Trésorier").waitFor();
+  if (await admin.locator("#number-MVOLA").count()) fail("l'administrateur peut modifier les numéros");
+  log("administrateur : numéros en lecture seule");
+
+  const ca = await login("ca@pride.local", "/membre");
+  await ca.goto(`${BASE}/finances/numeros`);
+  await ca.fill("#number-AIRTEL_MONEY", "12345");
+  await ca.fill("#holder-AIRTEL_MONEY", "PRIDe (fictif)");
+  await ca.locator("form", { has: ca.locator("#number-AIRTEL_MONEY") }).getByRole("button", { name: "Enregistrer" }).click();
+  await ca.getByText("Numéro de téléphone malgache invalide").first().waitFor();
+  await ca.fill("#number-AIRTEL_MONEY", "033 00 000 00");
+  await ca.locator("form", { has: ca.locator("#number-AIRTEL_MONEY") }).getByRole("button", { name: "Enregistrer" }).click();
+  await ca.getByText("Numéro Airtel Money enregistré").waitFor();
   const { rows: traced } = await db.query(`select 1 from audit_logs where action = 'finances.numero_modifie' and target = 'AIRTEL_MONEY' and created_at > now() - interval '5 minutes'`);
   if (!traced.length) fail("changement de numéro non tracé");
   await member.goto(`${BASE}/membre/cotisations`);
   await member.getByLabel("Airtel Money").check();
   await member.getByText("033 00 000 00").waitFor();
-  await admin.getByRole("button", { name: "Retirer ce numéro" }).first().waitFor();
-  await admin.locator(".grid > *", { has: admin.locator("#number-AIRTEL_MONEY") }).getByRole("button", { name: "Retirer ce numéro" }).click();
-  await admin.getByText("Numéro Airtel Money retiré").waitFor();
-  log("administrateur : numéro refusé s'il est invalide, ajouté, tracé, proposé au membre, puis retiré");
+  await ca.getByRole("button", { name: "Retirer ce numéro" }).first().waitFor();
+  await ca.locator(".grid > *", { has: ca.locator("#number-AIRTEL_MONEY") }).getByRole("button", { name: "Retirer ce numéro" }).click();
+  await ca.getByText("Numéro Airtel Money retiré").waitFor();
+  log("CA : numéro refusé s'il est invalide, ajouté, tracé, proposé au membre, puis retiré");
 
   // 2. Déclaration : ni reçu ni journal avant la vérification ; une référence ne sert qu'une fois
   await declare(member, LABEL_OK, REF_OK.toLowerCase());
@@ -113,6 +120,10 @@ try {
   log("capture : auteur et comptable seulement");
 
   // 4. Vérification : confirmation (reçu, journal), refus motivé (échéance à nouveau payable)
+  await admin.goto(`${BASE}/finances/verifier`);
+  await admin.getByText(REF_OK).waitFor();
+  if (await admin.getByRole("button", { name: "Argent reçu : confirmer" }).count()) fail("l'administrateur peut confirmer un paiement");
+  if ((await admin.request.get(`${BASE}/api/paiements/${refused.id}/preuve`)).status() !== 403) fail("capture accessible à l'administrateur");
   const card = (ref) => comptable.locator("section, article, div", { hasText: ref }).filter({ has: comptable.getByRole("button", { name: "Argent reçu : confirmer" }) }).last();
   await comptable.goto(`${BASE}/finances/verifier`);
   await card(REF_OK).getByRole("button", { name: "Argent reçu : confirmer" }).click();
@@ -142,9 +153,29 @@ try {
   await comptable.goto(`${BASE}/finances/verifier`);
   await comptable.getByText("C'est votre propre paiement").waitFor();
   log("son propre paiement : à vérifier par une autre personne");
+
+  // 6. Poste de Trésorier vacant : le Coordonnateur le remplace, jusqu'à la désignation d'un Trésorier
+  const mandate = async (id, role) => tempMandates.push((await db.query("insert into mandates (member_id, role, starts_at) values ($1, $2, current_date) returning id", [id, role])).rows[0].id);
+  const { rows: treasurers } = await db.query("select 1 from mandates where role = 'TRESORIER' and starts_at <= current_date and (ends_at is null or ends_at >= current_date)");
+  if (treasurers.length) {
+    log("remplacement non testé : un Trésorier est en fonction");
+  } else {
+    await mandate(memberId, "COORDONNATEUR");
+    await member.goto(`${BASE}/finances/numeros`);
+    await member.getByText("vous le remplacez temporairement").waitFor();
+    await member.locator("#number-MVOLA").waitFor();
+    await member.goto(`${BASE}/dirigeants`);
+    await member.getByText("Trésorier par intérim").waitFor();
+    await mandate(own, "TRESORIER");
+    await member.goto(`${BASE}/finances/numeros`);
+    await member.getByText("Seuls le Trésorier").waitFor();
+    if (await member.getByText("vous le remplacez temporairement").count()) fail("le remplacement continue après la désignation");
+    log("Coordonnateur : remplace le Trésorier vacant, droits retirés dès qu'un Trésorier est en fonction");
+  }
 } finally {
   if (db._connected) {
     if (selfPayment) await db.query("delete from payments where id = $1", [selfPayment]);
+    for (const id of tempMandates) await db.query("delete from mandates where id = $1", [id]);
     // Échéances fictives de ce test (années éloignées : jamais de vraies cotisations) ; le journal et les paiements restent.
     await db.query(`delete from dues where period >= '3000'`);
     if (savedAirtel) await db.query(`insert into payment_accounts (provider, number, holder) values ('AIRTEL_MONEY', $1, $2) on conflict do nothing`, [savedAirtel.number, savedAirtel.holder]);

@@ -23,7 +23,7 @@ async function run(job: () => Promise<string>): Promise<FormState> {
 export async function createBudgetAction(year: number, back: string): Promise<FormState> {
   const r = await run(async () => {
     const v = await requireMember();
-    if (!canPrepareBudget(v)) throw new BudgetError("Réservé au comptable, au Trésorier, au Coordonnateur et à l'administrateur.");
+    if (!canPrepareBudget(v)) throw new BudgetError("Réservé au comptable, au Trésorier et au Coordonnateur.");
     const b = await createBudget(year, v.member.id);
     await audit(v.member.id, "budget.brouillon", b.id, { year, version: b.version });
     return b.version > 1 ? `Budget rectificatif ${year} (version ${b.version}) en préparation : il reprend les lignes du budget adopté.` : `Budget ${year} en préparation.`;
@@ -41,7 +41,7 @@ export async function saveLineAction(budgetId: string, _p: FormState, f: FormDat
   const r = await run(async () => {
     const v = await requireMember();
     const commissionId = data.commissionId || null;
-    if (!canEditBudgetLine(v, commissionId)) throw new BudgetError(commissionId ? "Vous n'êtes pas responsable de cette commission." : "Les lignes générales sont saisies par le comptable, le Trésorier, le Coordonnateur ou l'administrateur.");
+    if (!canEditBudgetLine(v, commissionId)) throw new BudgetError(commissionId ? "Vous n'êtes pas responsable de cette commission." : "Les lignes générales sont saisies par le comptable, le Trésorier ou le Coordonnateur.");
     const { line, updated } = await saveLine(budgetId, { account: data.account as LedgerAccount, commissionId, label: data.label.slice(0, 200), amount: Number(data.amount) }, v.member.id);
     await audit(v.member.id, "budget.ligne", line.id, { budgetId, account: line.account, commissionId, amount: line.amount, updated });
     return updated ? "Ligne mise à jour (même compte et même commission)." : "Ligne ajoutée.";

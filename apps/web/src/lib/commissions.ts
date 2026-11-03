@@ -82,18 +82,20 @@ export async function removeCommissionMember(commissionId: string, memberId: str
     .where(and(eq(schema.commissionMemberships.commissionId, commissionId), eq(schema.commissionMemberships.memberId, memberId)));
 }
 
-/** E-mails des responsables en fonction aujourd'hui d'une commission (par son slug, ou aucune), et des autres rôles demandés (ex. Trésorier). */
+/** E-mails des responsables en fonction aujourd'hui d'une commission (par son slug, ou aucune), et des autres rôles demandés (ex. Trésorier ; poste vacant : le Coordonnateur qui le remplace). */
 export async function responsableEmails(slug: string | null, extraRoles: MandateRole[] = []) {
   const now = new Date();
   const mandates = await db.query.mandates.findMany({
     where: and(
-      inArray(schema.mandates.role, ["RESPONSABLE_COMMISSION", ...extraRoles]),
+      inArray(schema.mandates.role, ["RESPONSABLE_COMMISSION", "COORDONNATEUR", ...extraRoles]),
       lte(schema.mandates.startsAt, now),
       or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, now)),
     ),
     with: { member: true, commission: true },
   });
+  const acting = extraRoles.includes("TRESORIER") && !mandates.some((m) => m.role === "TRESORIER");
   return mandates
     .filter((m) => m.role !== "RESPONSABLE_COMMISSION" || m.commission?.slug === slug)
+    .filter((m) => m.role !== "COORDONNATEUR" || acting || extraRoles.includes("COORDONNATEUR"))
     .flatMap((m) => (m.member.email ? [m.member.email] : []));
 }

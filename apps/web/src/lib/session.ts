@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, db, eq, gte, isNull, or, schema } from "@pride/db";
+import { and, db, eq, gte, isNull, lte, or, schema } from "@pride/db";
 import { BUREAU_ROLES, CA_ROLES, DIRIGEANT_ROLES, type MandateRole } from "@pride/shared";
 import { auth } from "./auth";
 
@@ -19,10 +19,16 @@ async function loadViewer(reqHeaders: Headers) {
       })
     : [];
   const roles = mandates.map((m) => m.role as MandateRole);
+  // Poste de Trésorier vacant : le Coordonnateur le remplace, jusqu'à ce qu'un Trésorier soit en fonction.
+  const actingTreasurer =
+    roles.includes("COORDONNATEUR") &&
+    !(await db.query.mandates.findFirst({ where: and(eq(schema.mandates.role, "TRESORIER"), lte(schema.mandates.startsAt, today), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, today))) }));
+  if (actingTreasurer) roles.push("TRESORIER");
   return {
     user: session.user,
     member,
     roles,
+    actingTreasurer,
     isDirigeant: roles.some((r) => DIRIGEANT_ROLES.includes(r)),
     isCA: roles.some((r) => CA_ROLES.includes(r)),
     isBureau: roles.some((r) => BUREAU_ROLES.includes(r)),
@@ -69,23 +75,23 @@ export function canManageAssemblies(v: NonNullable<Viewer>) {
   return v.isCA || v.isAdmin || v.roles.includes("SECRETAIRE_GENERALE");
 }
 
-/** Finances : le comptable, le Trésorier et l'administrateur enregistrent ; les autres dirigeants consultent (lecture seule). */
+/** Finances : le comptable et le Trésorier enregistrent ; les autres dirigeants, dont l'administrateur, consultent (lecture seule). */
 export function canRecordFinances(v: NonNullable<Viewer>) {
-  return v.isComptable || v.isAdmin || v.roles.includes("TRESORIER");
+  return v.isComptable || v.roles.includes("TRESORIER");
 }
 
 /** Numéros qui reçoivent l'argent des membres : pas le comptable, qui vérifie les paiements reçus. */
-export const canManagePaymentAccounts = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin || v.roles.includes("TRESORIER");
+export const canManagePaymentAccounts = (v: NonNullable<Viewer>) => v.isCA || v.roles.includes("TRESORIER");
 
-/** Statuts, art. 22 : le Trésorier signe les pièces de dépense, un membre du CA les vise ; l'administrateur supplée (poste vacant). */
-export const canSignExpenses = (v: NonNullable<Viewer>) => v.isAdmin || v.roles.includes("TRESORIER");
-export const canApproveExpenses = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin;
+/** Statuts, art. 22 : le Trésorier (ou le Coordonnateur, poste vacant) signe les pièces de dépense, un membre du CA les vise. */
+export const canSignExpenses = (v: NonNullable<Viewer>) => v.roles.includes("TRESORIER");
+export const canApproveExpenses = (v: NonNullable<Viewer>) => v.isCA;
 
-/** Budget : lignes générales par le comptable, le Trésorier, le Coordonnateur ou l'administrateur ; lignes d'une commission aussi par ses responsables. */
+/** Budget : lignes générales par le comptable, le Trésorier ou le Coordonnateur ; lignes d'une commission aussi par ses responsables. */
 export const canPrepareBudget = (v: NonNullable<Viewer>) => canRecordFinances(v) || v.roles.includes("COORDONNATEUR");
 export const canEditBudgetLine = (v: NonNullable<Viewer>, commissionId: string | null) => canPrepareBudget(v) || (!!commissionId && v.commissionIds.includes(commissionId));
-/** Adoption du budget : conseil d'administration (ou administrateur). */
-export const canAdoptBudget = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin;
+/** Adoption du budget : conseil d'administration. */
+export const canAdoptBudget = (v: NonNullable<Viewer>) => v.isCA;
 
 export async function requireFinances() {
   const v = await requireMember();

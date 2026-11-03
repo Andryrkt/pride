@@ -2,6 +2,7 @@
 // DATABASE_URL=postgresql://pride:pride@localhost:5432/pride_check pnpm --filter @pride/web exec tsx --conditions=react-server tests/paiements.check.mts
 import assert from "node:assert/strict";
 import { db, eq, schema, closeDb } from "@pride/db";
+import { responsableEmails } from "../src/lib/commissions.ts";
 import { confirmPayment, declarePayment, failPayment, rejectPayment, verifyPayment } from "../src/lib/dues.ts";
 
 const [member, other] = await db.query.members.findMany({ limit: 2 });
@@ -50,5 +51,16 @@ assert.equal((await db.query.payments.findFirst({ where: eq(schema.payments.id, 
 assert.equal((await db.query.ledgerEntries.findMany({ where: eq(schema.ledgerEntries.paymentId, refused!.id) })).length, 0);
 await declarePayment({ ...input, dueIds: [due2!.id], reference: `C${run}` });
 
-console.log("OK : double déclaration refusée, vérification et états de paiement protégés");
+// 6. Poste de Trésorier vacant : les e-mails du Trésorier vont au Coordonnateur, jusqu'à la désignation d'un Trésorier.
+const coordMail = `coordonnateur-${run}@exemple.invalid`;
+const [coord] = await db.insert(schema.members).values({ number: `TEST${run}`, lastName: "COORD", firstNames: "Test (fictif)", email: coordMail, joinedAt: new Date() }).returning();
+await db.insert(schema.mandates).values({ memberId: coord!.id, role: "COORDONNATEUR", startsAt: new Date() });
+await db.delete(schema.mandates).where(eq(schema.mandates.role, "TRESORIER"));
+assert((await responsableEmails(null, ["TRESORIER"])).includes(coordMail), "le Coordonnateur remplace le Trésorier");
+assert(!(await responsableEmails(null, ["COMPTABLE"])).includes(coordMail), "le Coordonnateur ne reçoit pas le reste");
+await db.insert(schema.mandates).values({ memberId: other.id, role: "TRESORIER", startsAt: new Date() });
+assert(!(await responsableEmails(null, ["TRESORIER"])).includes(coordMail), "un Trésorier en fonction reprend ses e-mails");
+assert((await responsableEmails(null, ["COORDONNATEUR"])).includes(coordMail));
+
+console.log("OK : double déclaration refusée, vérification, états de paiement et remplacement du Trésorier");
 await closeDb();
