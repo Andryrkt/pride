@@ -25,16 +25,19 @@ export const GUIDE_MEMBRES: GuidePage[] = [
   {
     slug: "cotisations",
     title: "Payer sa cotisation et retrouver ses reçus",
-    summary: "Le droit d'entrée et la cotisation mensuelle se paient par MVola, Orange Money ou Airtel Money.",
+    summary: "Vous envoyez l'argent au numéro de l'association, vous déclarez votre paiement, et le reçu est créé après vérification.",
     steps: [
       { text: "Dans le menu, ouvrez « Mes cotisations ». Vous voyez ce que vous avez payé cette année et ce qui reste à payer.", image: "cotisations-1.png" },
       { text: "Dans « Payer par mobile money », cochez les mois que vous voulez régler (tous sont cochés au départ)." },
-      { text: "Choisissez votre opérateur (MVola, Orange Money ou Airtel Money) et vérifiez le numéro à débiter." },
-      { text: "Cliquez sur « Payer ». Validez la demande qui arrive sur votre téléphone, avec votre code secret mobile money." },
-      { text: "Le numéro de reçu s'affiche. Tous vos reçus restent dans « Paiements et reçus », en bas de la page." },
+      { text: "Choisissez votre opérateur. La page affiche le montant, le numéro de l'association et le nom du titulaire." },
+      { text: "Sur votre téléphone, envoyez l'argent par votre menu habituel, en vérifiant le nom avant de valider. L'association doit recevoir le montant exact : les frais d'envoi sont à votre charge." },
+      { text: "Revenez sur la page : indiquez le numéro utilisé et la référence reçue par SMS, ajoutez une capture si vous le souhaitez, puis cliquez sur « J'ai envoyé… : déclarer »." },
+      { text: "Vos mois passent « En vérification ». Dès que l'association a vérifié la réception de l'argent, vous recevez votre reçu dans « Paiements et reçus », en bas de la page. En cas de refus, le motif y est indiqué." },
     ],
     tips: [
       "Tarifs : membre actif 5 000 Ar d'entrée puis 10 000 Ar par mois ; membre mineur 5 000 Ar puis 5 000 Ar ; membre bienfaiteur 20 000 Ar puis 60 000 Ar.",
+      "PRIDe ne vous demande jamais votre code secret mobile money.",
+      "Vous préférez les espèces ? Remettez-les au comptable ou au Trésorier : le reçu est créé tout de suite.",
       "La cotisation versée reste acquise à l'association (règlement intérieur, art. 2).",
     ],
     links: [{ label: "Mes cotisations", href: "/membre/cotisations" }],

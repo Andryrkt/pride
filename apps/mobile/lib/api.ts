@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { PaymentProviderId } from "@pride/shared";
 import { authClient } from "./auth-client";
 import { API_URL } from "./config";
 
@@ -49,8 +50,9 @@ export type Me = {
 };
 
 export type Cotisations = {
-  dues: { id: string; label: string; amount: number; status: "A_PAYER" | "PAYEE" }[];
-  payments: { id: string; amount: number; provider: string; status: string; receiptNumber: string | null; createdAt: string }[];
+  dues: { id: string; label: string; amount: number; status: "A_PAYER" | "PAYEE"; pending: boolean }[];
+  payments: { id: string; amount: number; provider: string; status: string; receiptNumber: string | null; reference: string | null; rejectionReason: string | null; createdAt: string }[];
+  accounts: { provider: PaymentProviderId; number: string; holder: string }[];
 };
 
 export type Post = { id: string; type: string; title: string; excerpt: string; visibility: "PUBLIC" | "MEMBRES"; eventAt: string | null; location: string | null; publishedAt: string };

@@ -134,6 +134,11 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/\s/g, "").replace(/^\+261/, "0");
 }
 
+/** Référence de transaction sous une forme unique, pour repérer un doublon : « ab 12-c » → « AB12-C ». */
+export function normalizeReference(reference: string): string {
+  return reference.replace(/\s/g, "").toUpperCase();
+}
+
 /** Jour en cours à Madagascar (« 2026-11-03 »), quel que soit le fuseau du serveur. */
 export function localDay(now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Indian/Antananarivo" }).format(now);

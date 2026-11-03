@@ -74,6 +74,9 @@ export function canRecordFinances(v: NonNullable<Viewer>) {
   return v.isComptable || v.isAdmin || v.roles.includes("TRESORIER");
 }
 
+/** Numéros qui reçoivent l'argent des membres : pas le comptable, qui vérifie les paiements reçus. */
+export const canManagePaymentAccounts = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin || v.roles.includes("TRESORIER");
+
 /** Statuts, art. 22 : le Trésorier signe les pièces de dépense, un membre du CA les vise ; l'administrateur supplée (poste vacant). */
 export const canSignExpenses = (v: NonNullable<Viewer>) => v.isAdmin || v.roles.includes("TRESORIER");
 export const canApproveExpenses = (v: NonNullable<Viewer>) => v.isCA || v.isAdmin;

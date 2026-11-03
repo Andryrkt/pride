@@ -1,6 +1,6 @@
 import { paymentRequestSchema } from "@pride/shared";
 import { json, memberFromRequest } from "@/lib/api";
-import { PaymentError, payDues } from "@/lib/dues";
+import { declarePayment, PaymentError } from "@/lib/dues";
 
 export async function POST(req: Request) {
   const v = await memberFromRequest(req);
@@ -8,9 +8,9 @@ export async function POST(req: Request) {
   const parsed = paymentRequestSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return json({ error: parsed.error.issues[0]!.message }, 400);
   try {
-    const p = await payDues({ memberId: v.member.id, ...parsed.data });
-    return json({ status: p?.status, receiptNumber: p?.receiptNumber ?? null });
+    const p = await declarePayment({ memberId: v.member.id, ...parsed.data });
+    return json({ status: p?.status });
   } catch (e) {
-    return json({ error: e instanceof PaymentError ? e.message : "Paiement impossible" }, 400);
+    return json({ error: e instanceof PaymentError ? e.message : "Déclaration impossible" }, 400);
   }
 }

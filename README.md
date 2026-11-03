@@ -26,7 +26,7 @@ Les règles viennent des **statuts et du règlement intérieur adoptés le 27 se
 | Validation | Zod (mêmes règles pour le web, le mobile et le serveur) |
 | Fichiers | MinIO en local, tout service compatible S3 en production (ou le disque) |
 | E-mails | Nodemailer, avec Mailpit en local |
-| Paiements | Adaptateurs MVola / Orange Money / Airtel Money (mode **simulation** par défaut) |
+| Paiements | MVola, Orange Money, Airtel Money : envoi par le membre, déclaration de la référence, vérification par le comptable ; espèces |
 | Déploiement | Docker, Docker Compose, Caddy (HTTPS automatique) |
 | Qualité | Vitest (règles des statuts), test de bout en bout Playwright, GitHub Actions |
 
@@ -117,21 +117,16 @@ Les fichiers les plus importants :
 **Cotisations et paiements**
 
 - Les cotisations mensuelles sont créées automatiquement, à partir de `DUES_START_PERIOD` (par défaut `2026-10`).
-- Le paiement par mobile money se fait depuis le site ou l'application. Il génère un reçu `R-AAAA-NNNN` et une écriture au journal comptable.
+- Le membre envoie l'argent au numéro officiel de l'association depuis son téléphone, puis déclare la référence sur le site ou l'application. Le comptable ou le Trésorier vérifie sur le compte de l'association : la confirmation génère un reçu `R-AAAA-NNNN` et une écriture au journal comptable.
 - **Journal comptable** : une règle (un *trigger*) PostgreSQL interdit de modifier ou de supprimer une écriture (statuts, art. 21).
 
 **Actualités** : chaque contenu est publié avec la visibilité « Tout le monde » (site public et espace membres) ou « Membres seulement ».
 
 ---
 
-## Brancher les vrais paiements mobile money
+## Ouvrir le paiement par mobile money
 
-En mode `PAYMENTS_MODE=simulation`, tous les paiements réussissent immédiatement. Pour passer en réel :
-
-1. Obtenir les comptes marchands (MVola de Telma, Orange Money, Airtel Money) et leurs identifiants d'API.
-2. Implémenter `initiate()` pour chaque opérateur dans `apps/web/src/lib/payments.ts`.
-3. Faire appeler `/api/paiements/notification/[operateur]` par l'opérateur. Cette route est protégée par l'en-tête `x-pride-secret` = `PAYMENTS_WEBHOOK_SECRET` ; adaptez le format du corps à celui de chaque opérateur.
-4. Mettre `PAYMENTS_MODE=reel`.
+Aucun contrat marchand ni accès technique n'est nécessaire. Le Trésorier, un membre du CA ou l'administrateur renseigne le numéro et le titulaire de chaque opérateur dans Finances › Numéros mobile money. Tant qu'aucun numéro n'est renseigné, les membres sont invités à payer en espèces.
 
 ---
 

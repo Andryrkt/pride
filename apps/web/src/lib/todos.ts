@@ -20,6 +20,8 @@ export const DUTIES: Partial<Record<MandateRole, { ref: string; duties: string[]
   ADMIN_TECHNIQUE: { ref: "Désigné par le conseil d'administration", duties: ["Gérer les comptes et les rôles dans l'application", "Suppléer un poste vacant pour les opérations (signature des pièces)"] },
 };
 
+const NO_NUMBERS: Todo = { title: "Renseigner les numéros mobile money de l'association", ref: "Les membres ne peuvent pas encore payer par mobile money", href: "/finances/numeros", cta: "Renseigner" };
+
 const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
 
 /**
@@ -49,6 +51,10 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     tres ? expenseList() : null,
   ]);
   const missing = sg ? await missingDocuments() : [];
+  const [[{ declared }], [{ numbers }]] = await Promise.all([
+    db.select({ declared: count() }).from(schema.payments).where(eq(schema.payments.status, "EN_ATTENTE")),
+    db.select({ numbers: count() }).from(schema.paymentAccounts),
+  ]);
   const apps = (s: string) => applications.find((a) => a.status === s)?.n ?? 0;
   const exp = (s: string) => expenses.find((e) => e.status === s)?.n ?? 0;
   const unread = (recipient: string) => convs.filter((c) => c.recipient === recipient && unreadForStaff(c)).length;
@@ -79,6 +85,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     }
     add(exp("A_VISER"), { title: `${plural(exp("A_VISER"), "dépense", "dépenses")} à viser`, ref: "Pièces signées par le Trésorier, art. 22", href: "/finances/depenses", cta: "Viser" });
     for (const b of drafts) add(true, { title: `Adopter le budget ${b.year}${b.version > 1 ? " (rectificatif)" : ""}`, ref: "Brouillon préparé par le bureau et les commissions", href: `/finances/budget?annee=${b.year}`, cta: "Ouvrir" });
+    add(!numbers, NO_NUMBERS);
     add(!treasurer, { title: "Désigner un Trésorier", ref: "Bureau exécutif incomplet, art. 14 et 16", href: "/dirigeants/membres", cta: "Registre" });
   }
 
@@ -89,6 +96,8 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
   }
 
   if (tres) {
+    add(!numbers, NO_NUMBERS);
+    add(declared, { title: `${plural(declared, "paiement", "paiements")} mobile money à vérifier`, ref: "Contrôler la référence et le montant sur le compte de l'association", href: "/finances/verifier", cta: "Vérifier" });
     add(exp("A_SIGNER"), { title: `${plural(exp("A_SIGNER"), "pièce", "pièces")} de dépense à signer`, ref: "Statuts, art. 22", href: "/finances/depenses", cta: "Signer" });
     add(exp("A_PAYER"), { title: `${plural(exp("A_PAYER"), "dépense visée", "dépenses visées")} à payer`, ref: "Écriture au journal au paiement", href: "/finances/depenses", cta: "Payer" });
     add(pieces?.aidsWithoutPiece.length, { title: `${plural(pieces?.aidsWithoutPiece.length ?? 0, "aide accordée", "aides accordées")} : pièce à préparer`, ref: "Aide de solidarité, RI art. 6", href: "/finances/depenses", cta: "Préparer" });

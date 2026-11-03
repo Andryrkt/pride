@@ -414,19 +414,37 @@ export const paymentProvider = pgEnum("payment_provider", ["MVOLA", "ORANGE_MONE
 export const paymentStatus = pgEnum("payment_status", ["EN_ATTENTE", "REUSSI", "ECHOUE"]);
 export const ledgerDirection = pgEnum("ledger_direction", ["RECETTE", "DEPENSE"]);
 
-export const payments = pgTable("payments", {
-  id: id(),
-  memberId: text("member_id")
-    .notNull()
-    .references(() => members.id),
-  amount: integer("amount").notNull(),
-  provider: paymentProvider("provider").notNull(),
-  phone: text("phone"),
-  status: paymentStatus("status").notNull().default("EN_ATTENTE"),
-  providerRef: text("provider_ref"),
-  receiptNumber: text("receipt_number").unique(), // R-2026-0418
-  createdAt: createdAt(),
-  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+export const payments = pgTable(
+  "payments",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+    amount: integer("amount").notNull(),
+    provider: paymentProvider("provider").notNull(),
+    phone: text("phone"),
+    status: paymentStatus("status").notNull().default("EN_ATTENTE"),
+    providerRef: text("provider_ref"), // référence de la transaction, déclarée par le membre
+    paidTo: text("paid_to"), // numéro de l'association affiché au membre lors de sa déclaration
+    proofKey: text("proof_key"),
+    proofName: text("proof_name"),
+    proofType: text("proof_type"),
+    rejectionReason: text("rejection_reason"),
+    receiptNumber: text("receipt_number").unique(), // R-2026-0418
+    createdAt: createdAt(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  },
+  // Une référence ne sert qu'une fois par opérateur ; elle se réutilise après un refus (erreur de saisie).
+  (t) => [uniqueIndex("payments_provider_ref_uq").on(t.provider, t.providerRef).where(sql`${t.status} <> 'ECHOUE' and ${t.providerRef} is not null`)],
+);
+
+/** Numéros officiels de l'association : un opérateur sans numéro n'est pas proposé aux membres. */
+export const paymentAccounts = pgTable("payment_accounts", {
+  provider: paymentProvider("provider").primaryKey(),
+  number: text("number").notNull(),
+  holder: text("holder").notNull(),
+  updatedAt: updatedAt(),
 });
 
 export const dues = pgTable(

@@ -97,10 +97,12 @@ try {
   await page.waitForURL(`${BASE}/membre`);
   await shot(page, "5-membre-mobile");
   await page.goto(`${BASE}/membre/cotisations`);
-  await page.getByRole("button", { name: /Payer \d/ }).click();
-  await page.waitForSelector("text=/Paiement reçu. Reçu n° R-\\d{4}-\\d{4}/");
+  await page.getByLabel("Numéro utilisé pour l'envoi").fill("034 12 345 67");
+  await page.getByLabel("Référence de la transaction").fill(`PARCOURS${Date.now()}`);
+  await page.getByRole("button", { name: /: déclarer$/ }).click();
+  await page.waitForSelector("text=Déclaration enregistrée");
   await shot(page, "6-paiement");
-  log("paiement simulé + reçu");
+  log("paiement déclaré, en attente de vérification");
   await page.goto(`${BASE}/membre/actualites`);
   await page.waitForSelector("text=Réunion interne de test");
   log("le membre voit l'annonce réservée");

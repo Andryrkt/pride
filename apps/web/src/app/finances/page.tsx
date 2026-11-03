@@ -1,4 +1,4 @@
-import { desc, db, schema } from "@pride/db";
+import { count, desc, db, eq, schema } from "@pride/db";
 import { formatAriary } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ButtonLink } from "@/components/ui/button";
@@ -11,7 +11,12 @@ const monthName = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numer
 export default async function FinanceDashboard({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
   await requireFinances();
-  const [s, ex, last] = await Promise.all([financeSummary(), expenseList(), db.query.ledgerEntries.findMany({ orderBy: desc(schema.ledgerEntries.number), limit: 5 })]);
+  const [s, ex, last, [{ declared }]] = await Promise.all([
+    financeSummary(),
+    expenseList(),
+    db.query.ledgerEntries.findMany({ orderBy: desc(schema.ledgerEntries.number), limit: 5 }),
+    db.select({ declared: count() }).from(schema.payments).where(eq(schema.payments.status, "EN_ATTENTE")),
+  ]);
   const month = monthName.format(new Date());
   const kpis = [
     ["Solde du journal", formatAriary(s.solde), "recettes moins dépenses, depuis le début", s.solde < 0 ? "text-flame-600" : ""],
@@ -54,6 +59,13 @@ export default async function FinanceDashboard({ searchParams }: { searchParams:
         </Card>
 
         <div className="flex flex-col gap-5">
+          <Card className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold">Paiements à vérifier ({declared})</h2>
+              <p className="text-muted">Déclarés par les membres, à contrôler sur le compte de l'association.</p>
+            </div>
+            <ButtonLink href="/finances/verifier" variant="outline">Vérifier</ButtonLink>
+          </Card>
           <Card className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-bold">Membres en retard</h2>

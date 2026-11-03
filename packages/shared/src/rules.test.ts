@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { addDays, habitStreak, localDay, weekStart, assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
-import { applicationSchema } from "./schemas";
+import { normalizeReference, addDays, habitStreak, localDay, weekStart, assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
+import { applicationSchema, paymentRequestSchema } from "./schemas";
 
 describe("règles des statuts", () => {
+  it("référence de transaction : espaces et casse ne cachent pas un doublon", () => {
+    expect(normalizeReference(" ab 12-c ")).toBe("AB12-C");
+    expect(paymentRequestSchema.safeParse({ dueIds: ["x"], provider: "MVOLA", phone: "034 12 345 67", reference: " ab 12-c " }).data?.reference).toBe("AB12-C");
+    expect(paymentRequestSchema.safeParse({ dueIds: ["x"], provider: "MVOLA", phone: "034 12 345 67", reference: "ab" }).success).toBe(false);
+  });
   it("agrément : majorité des présents", () => {
     expect(agrementAdopted(3, 5)).toBe(true);
     expect(agrementAdopted(2, 5)).toBe(false);

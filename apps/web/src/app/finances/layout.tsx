@@ -18,8 +18,10 @@ export default async function FinancesLayout({ children }: { children: React.Rea
         { href: "/finances/livre", label: "Livre comptable" },
         { href: "/finances/budget", label: "Budget" },
         { href: "/finances/depenses", label: "Dépenses à viser" },
+        { href: "/finances/verifier", label: "Paiements à vérifier" },
         { href: "/finances/encaisser", label: "Encaisser en espèces" },
         { href: "/finances/paiements", label: "Paiements et retards" },
+        { href: "/finances/numeros", label: "Numéros mobile money" },
       ]}
       extra={[...(v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : []), { href: "/membre", label: "Mon espace membre" }]}
     >

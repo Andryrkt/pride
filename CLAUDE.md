@@ -25,7 +25,7 @@ L'équipe de développement est composée de bénévoles. Parlez en **français*
   - Appliquer les migrations : `pnpm db:deploy`.
 - `packages/shared` : règles des statuts et schémas Zod, partagés entre le web, le mobile et le serveur.
 - Fichiers : S3/MinIO, ou disque si `S3_ENDPOINT` est vide. E-mails : Nodemailer (Mailpit en local).
-- Paiements : `PAYMENTS_MODE=simulation` par défaut. Les adaptateurs réels MVola / Orange / Airtel sont à brancher dans `apps/web/src/lib/payments.ts`.
+- Paiements : **pas de lien direct avec les opérateurs** (choix validé : le paiement direct ne rassure pas encore à Madagascar). Le membre envoie l'argent par son menu habituel, déclare la référence, le comptable vérifie. Les frais d'envoi sont à la charge du membre.
 - Les comptes membres sont créés **uniquement après l'agrément** : l'inscription libre est désactivée.
 - Visibilité des actualités : `PUBLIC` (tout le monde) ou `MEMBRES`.
 
@@ -48,6 +48,7 @@ node tests/budget.e2e.mjs                            # budget : préparation, ad
 node tests/tableau-dirigeants.e2e.mjs                # tableau de bord des dirigeants selon le rôle (Secrétaire générale, administrateur)
 node tests/documents.e2e.mjs                         # documents officiels (archive au départ les statuts en vigueur de la base locale)
 node tests/discipline.e2e.mjs                        # autodiscipline : site lancé, base avec démo (peut être relancé)
+node tests/paiements.e2e.mjs                         # paiement déclaré, vérification, numéros officiels (écrit au journal ; site lancé, base avec démo)
 node tests/aide.e2e.mjs                              # aide : 3 guides, questions, accès, impression (site lancé, base avec démo)
 node tests/captures-aide.mjs                         # régénère les captures des guides (site lancé, base avec démo)
 # paiements, sur une base JETABLE migrée + démo (écrit au journal non modifiable) :
@@ -61,7 +62,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
   - candidature avec pièces jointes ;
   - contact façon messagerie e-mail, envoyé à l'association ;
   - connexion ;
-  - espace membres : carte, cotisations, paiement simulé + reçu + journal, actualités, inscriptions aux événements, profil ;
+  - espace membres : carte, cotisations, reçu + journal, actualités, inscriptions aux événements, profil ;
   - espace dirigeants : agrément CA, registre, publication des actualités ;
   - API REST `/api/v1` pour le mobile ;
   - application mobile : connexion, accueil, cotisations, actualités, profil ;
@@ -88,6 +89,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
   - **budget annuel** (`apps/web/src/lib/budget.ts`, `/finances/budget`, `/membre/budget` pour les responsables de commission ; tables `budgets`, `budget_lines`) : un brouillon par année, lignes = compte du livre + commission ou « Général » + montant prévu (une ligne par compte et par commission) ; lignes générales par le comptable, le Trésorier, le Coordonnateur ou l'administrateur, lignes d'une commission aussi par ses responsables ; **adoption par le CA** (date de la réunion), puis verrouillé ; modification = **budget rectificatif** (version suivante, reprend les lignes, l'ancienne passe « Remplacé »). Chaque pièce de dépense est **imputée** à une ligne du budget adopté de l'année (ou « hors budget ») ; dépassement = **avertissement**, pas blocage. Suivi : prévu, réalisé (journal, net des rectifications), engagé (pièces en cours), reste ; export CSV. Une écriture porte une **commission** (`ledger_entries.commission_id`, facultative) : choisie à la saisie d'une recette (ex. participations des non-membres à une formation, argent remis par la commission au comptable), reprise de la ligne budgétaire pour une dépense payée, reprise par la rectification. Test : `node tests/budget.e2e.mjs`.
   - **visa des dépenses** (statuts, art. 22 ; table `expenses`, page `/finances/depenses`) : toute dépense passe par une pièce `PJ-0001` préparée (comptable, Trésorier, administrateur ; pour une aide accordée : « Préparer la pièce »), **signée par le Trésorier**, **visée par un membre du CA autre que le signataire**, puis payée (écriture de dépense au journal ; aide « Versée » et membre prévenu). Rejet motivé possible avant le visa. Tant que le poste de Trésorier est vacant, l'administrateur peut signer à sa place. E-mail à chaque étape (`notifyNextStep`) : à signer → Trésorier ; à viser → CA (sans le signataire) ; à payer → comptable et Trésorier ; sans destinataire → administrateur, puis boîte de l'association ; rejet → auteur de la pièce. Testé dans `node tests/finances.e2e.mjs`.
   - **autodiscipline** (`apps/web/src/lib/discipline.ts`, `/membre/discipline`) : objectifs, habitudes (3 en cours au maximum, `MAX_HABITUDES`, cases du jour et de la veille), bilan par jour ou par semaine au choix du membre. Données affichées à lui seul : aucune page dirigeant, aucun effet sur le statut. Jours calculés au fuseau de Madagascar (`localDay`). Test : `node tests/discipline.e2e.mjs`.
+  - **paiement mobile money déclaré** (`apps/web/src/lib/dues.ts`, `/finances/verifier`, `/finances/numeros`) : le membre choisit ses mois et l'opérateur, envoie l'argent au numéro officiel, déclare le numéro utilisé et la référence (capture facultative) ; ni reçu ni journal avant la vérification. Le comptable, le Trésorier ou l'administrateur confirme (reçu + journal) ou refuse avec un motif (échéances de nouveau à payer) ; personne ne vérifie son propre paiement. Une référence ne sert qu'une fois par opérateur, sauf après un refus. Numéros et titulaires modifiables par le Trésorier, le CA ou l'administrateur (pas le comptable), tracés et signalés par e-mail à l'association ; un opérateur sans numéro n'est pas proposé. Test : `node tests/paiements.e2e.mjs`.
 - **À faire (phase 3, voir la maquette validée)** :
   - AG et PV : convocation, quorum de la majorité absolue, votes, PV généré ;
   - sections régionales ;

@@ -2,7 +2,7 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["NODE_ENV"],
   "tasks": {
-    "build": { "dependsOn": ["^build", "^generate"], "outputs": [".next/**", "!.next/cache/**"], "env": ["DATABASE_URL", "BETTER_AUTH_*", "NEXT_PUBLIC_*", "S3_*", "SMTP_*", "MAIL_*", "PAYMENTS_MODE"] },
+    "build": { "dependsOn": ["^build", "^generate"], "outputs": [".next/**", "!.next/cache/**"], "env": ["DATABASE_URL", "BETTER_AUTH_*", "NEXT_PUBLIC_*", "S3_*", "SMTP_*", "MAIL_*"] },
     "generate": { "cache": false },
     "dev": { "cache": false, "persistent": true, "dependsOn": ["^generate"] },
     "typecheck": { "dependsOn": ["^generate"] },

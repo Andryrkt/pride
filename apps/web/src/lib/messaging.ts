@@ -82,7 +82,7 @@ async function assistantReply(member: Member, question: string): Promise<Reply> 
       const total = unpaid.reduce((s, d) => s + d.amount, 0);
       return {
         body: unpaid.length
-          ? `Il vous reste ${formatAriary(total)} à payer (${unpaid.length} échéance${unpaid.length > 1 ? "s" : ""}). Vous pouvez payer par MVola, Orange Money ou Airtel Money ; le reçu est disponible tout de suite dans « Mes cotisations ».`
+          ? `Il vous reste ${formatAriary(total)} à payer (${unpaid.length} échéance${unpaid.length > 1 ? "s" : ""}). Envoyez l'argent au numéro de l'association indiqué dans « Mes cotisations », puis déclarez votre paiement : le reçu est créé après vérification. Vous pouvez aussi payer en espèces auprès du comptable ou du Trésorier.`
           : "Vos cotisations sont à jour. Merci ! L'historique et les reçus sont dans « Mes cotisations ».",
         links: [{ label: unpaid.length ? "Payer ma cotisation" : "Mes cotisations", href: "/membre/cotisations" }],
       };

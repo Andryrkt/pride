@@ -206,6 +206,9 @@ async function main() {
         createdBy: admin.id,
       });
     }
+    // Numéro de démonstration, pour essayer le paiement : à remplacer par les vrais numéros en production.
+    await db.insert(s.paymentAccounts).values({ provider: "MVOLA", number: "034 00 000 00", holder: "PRIDe (numéro fictif de démonstration)" }).onConflictDoNothing();
+
     // Demandes à traiter côté dirigeants (fictives), une seule fois même si le seed est relancé
     if (!(await db.query.applications.findFirst())) {
       await db.insert(s.applications).values({

@@ -23,9 +23,9 @@ export const FAQ: { theme: string; items: FaqItem[] }[] = [
     theme: "Cotisations et paiements",
     items: [
       { q: "Combien coûte l'adhésion ?", a: "Membre actif : 5 000 Ar de droit d'entrée, puis 10 000 Ar par mois. Membre mineur : 5 000 Ar puis 5 000 Ar. Membre bienfaiteur : 20 000 Ar puis 60 000 Ar. Les montants peuvent être révisés chaque année par l'assemblée générale." },
-      { q: "Comment payer ?", a: "Dans « Mes cotisations », par MVola, Orange Money ou Airtel Money : choisissez les mois, l'opérateur et le numéro, puis validez la demande sur votre téléphone.", link: { label: "Payer sa cotisation", href: "/aide/membres/cotisations" } },
+      { q: "Comment payer ?", a: "Dans « Mes cotisations » : choisissez les mois et l'opérateur, envoyez l'argent au numéro affiché depuis votre téléphone, puis déclarez la référence reçue par SMS. Le reçu est créé après vérification. Vous pouvez aussi payer en espèces auprès du comptable ou du Trésorier.", link: { label: "Payer sa cotisation", href: "/aide/membres/cotisations" } },
       { q: "Où trouver mes reçus ?", a: "Dans « Mes cotisations », en bas de la page : « Paiements et reçus »." },
-      { q: "Puis-je payer plusieurs mois en une fois ?", a: "Oui : cochez tous les mois à régler avant de cliquer sur « Payer »." },
+      { q: "Puis-je payer plusieurs mois en une fois ?", a: "Oui : cochez tous les mois à régler avant de déclarer votre paiement." },
       { q: "Puis-je être remboursé ?", a: "Non : la cotisation versée reste acquise à l'association (règlement intérieur, art. 2)." },
     ],
   },

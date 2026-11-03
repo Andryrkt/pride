@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { OFFER_TYPES, PAYMENT_PROVIDERS, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS } from "./constants";
+import { normalizeReference } from "./rules";
 
 const phone = z
   .string({ required_error: "Téléphone : champ obligatoire" })
@@ -101,9 +102,15 @@ export const paymentRequestSchema = z.object({
   dueIds: z.array(z.string().min(1)).min(1, "Choisissez au moins une échéance à payer."),
   provider: z.enum(Object.keys(PAYMENT_PROVIDERS) as [keyof typeof PAYMENT_PROVIDERS, ...(keyof typeof PAYMENT_PROVIDERS)[]]),
   phone,
+  reference: required("Référence de la transaction").min(4, "Référence de la transaction trop courte").max(60).transform(normalizeReference),
 });
 
 export type PaymentRequest = z.infer<typeof paymentRequestSchema>;
+
+export const paymentAccountSchema = z.object({
+  number: phone,
+  holder: required("Nom du titulaire").max(120),
+});
 
 export const profileSchema = z.object({
   phone,

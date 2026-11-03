@@ -50,7 +50,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                 {unpaid.map((d) => (
                   <label key={d.id} className="flex items-center gap-3 rounded-xl border border-line px-4 py-3">
                     <input type="checkbox" name="due" value={d.id} defaultChecked={!d.paymentId} disabled={!!d.paymentId} className="size-5" />
-                    <span className="flex-1">{dueLabel(d)}{d.paymentId ? " · paiement mobile en cours" : ""}</span>
+                    <span className="flex-1">{dueLabel(d)}{d.paymentId ? " · paiement mobile à vérifier" : ""}</span>
                     <strong>{formatAriary(d.amount)}</strong>
                   </label>
                 ))}

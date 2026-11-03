@@ -6,7 +6,7 @@ import { lateMembers, recentPayments } from "@/lib/finances";
 import { requireFinances } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 
-const STATUS = { REUSSI: ["Réussi", "green"], EN_ATTENTE: ["En attente", "yellow"], ECHOUE: ["Échoué", "red"] } as const;
+const STATUS = { REUSSI: ["Réussi", "green"], EN_ATTENTE: ["À vérifier", "yellow"], ECHOUE: ["Refusé", "red"] } as const;
 
 export default async function PaymentsPage() {
   await requireFinances();
@@ -41,15 +41,16 @@ export default async function PaymentsPage() {
         <h2 className="px-6 pt-5 pb-2 text-xl font-bold">Derniers paiements</h2>
         <table className="w-full min-w-170 text-left text-[14.5px]">
           <thead className="bg-paper text-xs tracking-wider text-muted uppercase">
-            <tr><th className="px-4 py-3">Date</th><th>Membre</th><th>Moyen</th><th>Montant</th><th>Statut</th><th>Reçu</th></tr>
+            <tr><th className="px-4 py-3">Date</th><th>Membre</th><th>Moyen</th><th>Référence</th><th>Montant</th><th>Statut</th><th>Reçu</th></tr>
           </thead>
           <tbody>
-            {payments.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-muted">Aucun paiement pour le moment.</td></tr>}
+            {payments.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-muted">Aucun paiement pour le moment.</td></tr>}
             {payments.map((p) => (
               <tr key={p.id} className="border-t border-line">
                 <td className="px-4 py-3 whitespace-nowrap">{formatDate(p.createdAt)}</td>
                 <td>{p.member.lastName} {p.member.firstNames}</td>
                 <td>{PAYMENT_PROVIDERS[p.provider as PaymentProviderId] ?? "Espèces"}</td>
+                <td className="font-mono text-sm break-all">{p.providerRef ?? "—"}</td>
                 <td>{formatAriary(p.amount)}</td>
                 <td><Badge tone={STATUS[p.status][1]}>{STATUS[p.status][0]}</Badge></td>
                 <td className="font-mono text-sm">{p.receiptNumber ?? "—"}</td>

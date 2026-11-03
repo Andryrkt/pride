@@ -1,11 +1,11 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { accountsFor, formatAriary, type LedgerAccount } from "@pride/shared";
+import { accountsFor, formatAriary, type LedgerAccount, PAYMENT_PROVIDERS, paymentAccountSchema, type PaymentProviderId } from "@pride/shared";
 import { remainingOnLine } from "@/lib/budget";
-import { PaymentError, payCash } from "@/lib/dues";
+import { PaymentError, payCash, rejectPayment, removePaymentAccount, savePaymentAccount, verifyPayment } from "@/lib/dues";
 import { addEntry, approveExpense, correctEntry, FinanceError, payExpense, pieceRef, prepareAidExpense, prepareExpense, rejectExpense, signExpense } from "@/lib/finances";
-import { audit, requireFinances } from "@/lib/session";
+import { audit, canManagePaymentAccounts, requireFinances } from "@/lib/session";
 import type { FormState } from "@/lib/utils";
 
 /** Seuls le comptable, le Trésorier et l'administrateur enregistrent ; les autres dirigeants consultent. */
@@ -71,6 +71,58 @@ export async function payCashAction(memberId: string, _p: FormState, f: FormData
     const p = await payCash(memberId, dueIds, v.member.id);
     await audit(v.member.id, "finances.especes", memberId, { paymentId: p.id, amount: p.amount, receipt: p.receiptNumber });
     return `Paiement en espèces enregistré : reçu n° ${p.receiptNumber}. Le membre le retrouve dans « Mes cotisations ».`;
+  });
+}
+
+export async function confirmDeclaredPaymentAction(id: string): Promise<FormState> {
+  return runThenShow("/finances/verifier", async () => {
+    const v = await recorder();
+    const p = await verifyPayment(id, v.member.id);
+    await audit(v.member.id, "finances.paiement_confirme", id, { memberId: p.memberId, amount: p.amount, reference: p.providerRef, receipt: p.receiptNumber });
+    return `Paiement confirmé : reçu n° ${p.receiptNumber}, recette inscrite au journal.`;
+  });
+}
+
+export async function rejectDeclaredPaymentAction(id: string, _p: FormState, f: FormData): Promise<FormState> {
+  const reason = String(f.get("reason") ?? "").trim();
+  if (!reason) return { ok: false, message: "Indiquez le motif du refus.", errors: { reason: "Motif : champ obligatoire" } };
+  return runThenShow("/finances/verifier", async () => {
+    const v = await recorder();
+    const p = await rejectPayment(id, reason.slice(0, 200), v.member.id);
+    await audit(v.member.id, "finances.paiement_refuse", id, { memberId: p.memberId, amount: p.amount, reference: p.providerRef, reason });
+    return "Paiement refusé : le membre est prévenu.";
+  });
+}
+
+async function accountsManager(provider: PaymentProviderId) {
+  const v = await requireFinances();
+  if (!canManagePaymentAccounts(v)) throw new FinanceError("Réservé au Trésorier, au conseil d'administration et à l'administrateur.");
+  if (!(provider in PAYMENT_PROVIDERS)) throw new FinanceError("Opérateur inconnu.");
+  return v;
+}
+
+export async function savePaymentAccountAction(provider: PaymentProviderId, _p: FormState, f: FormData): Promise<FormState> {
+  const data = { number: String(f.get("number") ?? ""), holder: String(f.get("holder") ?? "") };
+  const parsed = paymentAccountSchema.safeParse(data);
+  if (!parsed.success) {
+    const errors: Record<string, string> = {};
+    for (const i of parsed.error.issues) errors[String(i.path[0])] ??= i.message;
+    return { ok: false, message: Object.values(errors)[0], errors, data };
+  }
+  return run(async () => {
+    const v = await accountsManager(provider);
+    await savePaymentAccount(provider, parsed.data.number, parsed.data.holder, `${v.member.firstNames} ${v.member.lastName}`);
+    await audit(v.member.id, "finances.numero_modifie", provider, parsed.data);
+    return `Numéro ${PAYMENT_PROVIDERS[provider]} enregistré.`;
+  });
+}
+
+export async function removePaymentAccountAction(provider: PaymentProviderId): Promise<FormState> {
+  return runThenShow("/finances/numeros", async () => {
+    const v = await accountsManager(provider);
+    await removePaymentAccount(provider, `${v.member.firstNames} ${v.member.lastName}`);
+    await audit(v.member.id, "finances.numero_retire", provider);
+    return `Numéro ${PAYMENT_PROVIDERS[provider]} retiré.`;
   });
 }
 
