@@ -30,6 +30,7 @@ export default async function DirigeantsLayout({ children }: { children: React.R
         { href: "/dirigeants/offres", label: "Offres des membres", badge: offers },
         { href: "/dirigeants/messages", label: "Messagerie", badge: convs.filter(unreadForStaff).length },
         { href: "/dirigeants/ag", label: "Assemblées générales" },
+        { href: "/dirigeants/documents", label: "Documents officiels" },
         { href: "/dirigeants/actualites", label: "Actualités et événements" },
       ]}
       extra={[{ href: "/finances", label: "Finances" }, { href: "/membre", label: "Mon espace membre" }]}

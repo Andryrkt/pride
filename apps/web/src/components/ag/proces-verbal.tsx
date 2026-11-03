@@ -1,16 +1,13 @@
-import { MAJORITES } from "@pride/shared";
-import { KIND_LABELS, type AssemblyDetail } from "@/lib/assemblies";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import type { AssemblyDetail } from "@/lib/assemblies";
+import {
+  hour, person, pvAnnexTitle, pvClosing, pvMajority, pvNotVoted, pvOpening, pvQuorumConclusion, pvQuorumItems,
+  pvResolutionTitle, pvSession, pvSubtitle, pvTitle, pvVote, PV_SIGNATURES,
+} from "@/lib/pv-text";
 
-const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
-const person = (m: { lastName: string; firstNames: string } | null) => (m ? `${m.lastName} ${m.firstNames}` : "—");
-
-/** Procès-verbal de l'AG, établi à partir des données enregistrées pendant la séance. */
+/** Procès-verbal de l'AG, établi à partir des données enregistrées pendant la séance ; textes communs avec le PDF (`pv-text.ts`). */
 export function ProcesVerbal({ a }: { a: AssemblyDetail }) {
   const carence = a.status === "CARENCE";
   const final = a.status === "CLOTUREE" || carence;
-  const nonVoters = a.attendances.length - a.presentVoters;
-  const kind = KIND_LABELS[a.kind].toLowerCase();
   return (
     <article className="relative mx-auto flex w-full max-w-[820px] flex-col gap-5 rounded-2xl border border-line bg-white p-8 font-serif text-[15.5px] leading-relaxed text-ink print:max-w-none print:border-0 print:p-0">
       {!final && (
@@ -21,43 +18,19 @@ export function ProcesVerbal({ a }: { a: AssemblyDetail }) {
       <header className="flex flex-col items-center gap-1 border-b border-line pb-4 text-center">
         <div className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-brand-800">Association PRIDe</div>
         <div className="font-sans text-xs text-muted">Partage Responsabilité Intégrité pour le Développement · Antananarivo</div>
-        <h1 className="mt-3 font-sans text-2xl font-extrabold">
-          {carence ? "Procès-verbal de carence" : "Procès-verbal"} de l'{kind}
-        </h1>
-        <div className="font-sans text-sm text-muted">
-          {a.reference}{a.convocationNumber >= 2 ? " · deuxième convocation" : ""} · {formatDate(a.scheduledAt)}
-        </div>
+        <h1 className="mt-3 font-sans text-2xl font-extrabold">{pvTitle(a)}</h1>
+        <div className="font-sans text-sm text-muted">{pvSubtitle(a)}</div>
       </header>
 
-      <p>
-        {a.openedAt ? `Le ${formatDate(a.openedAt)}` : `Le ${formatDateTime(a.scheduledAt)}`}, à {a.location}, les membres de l'association PRIDe se sont réunis en {kind}
-        {a.convocationNumber >= 2 && a.previous ? `, sur deuxième convocation, l'assemblée du ${formatDate(a.previous.scheduledAt)} (${a.previous.reference}) n'ayant pas réuni le quorum` : ""}
-        {a.convokedAt ? `, sur convocation envoyée le ${formatDate(a.convokedAt)}` : ""}.
-      </p>
-      {a.openedAt && (
-        <p>
-          La séance est ouverte à {time.format(new Date(a.openedAt))} sous la présidence de <strong>{person(a.president)}</strong>.{" "}
-          <strong>{person(a.secretary)}</strong> assure le secrétariat de séance.
-        </p>
-      )}
+      <p>{pvOpening(a)}</p>
+      {a.openedAt && <p>{pvSession(a)}</p>}
 
       <section className="flex flex-col gap-1">
         <h2 className="font-sans text-lg font-bold">Quorum</h2>
         <ul className="list-disc pl-6">
-          <li>Membres ayant le droit de vote : {a.eligibleVoters ?? "—"} (membres actifs majeurs ; pas de procuration)</li>
-          {a.convocationNumber < 2 && <li>Quorum requis (majorité absolue) : {a.quorum ?? "—"}</li>}
-          <li>Votants présents : {a.presentVoters}</li>
-          {nonVoters > 0 && <li>Présents sans droit de vote (mineurs, bienfaiteurs) : {nonVoters}</li>}
+          {pvQuorumItems(a).map((x) => <li key={x}>{x}</li>)}
         </ul>
-        <p className="mt-1">
-          {carence
-            ? `Le quorum n'étant pas atteint (${a.presentVoters} votants présents sur ${a.quorum} requis), l'assemblée ne peut pas délibérer. Une deuxième assemblée sera convoquée sur le même ordre du jour ; elle délibérera valablement quel que soit le nombre de membres présents.`
-            : a.convocationNumber >= 2
-              ? "Sur deuxième convocation, l'assemblée délibère valablement quel que soit le nombre de membres présents."
-              : a.canDeliberate
-                ? "Le quorum étant atteint, l'assemblée peut valablement délibérer."
-                : "Le quorum n'est pas encore atteint."}
-        </p>
+        <p className="mt-1">{pvQuorumConclusion(a)}</p>
       </section>
 
       <section className="flex flex-col gap-1">
@@ -70,17 +43,20 @@ export function ProcesVerbal({ a }: { a: AssemblyDetail }) {
           <h2 className="font-sans text-lg font-bold">Délibérations</h2>
           {a.resolutions.map((r) => (
             <div key={r.id} className="flex flex-col gap-1 break-inside-avoid">
-              <h3 className="font-sans font-bold">Résolution n° {r.position} : {r.title}</h3>
+              <h3 className="font-sans font-bold">{pvResolutionTitle(r)}</h3>
               <p className="whitespace-pre-line">{r.text}</p>
-              <p className="text-sm text-muted">{MAJORITES[r.majority].label} ({MAJORITES[r.majority].detail}).</p>
-              {r.adopted === null ? (
-                <p className="italic">Non encore votée.</p>
-              ) : (
-                <p>
-                  Votants présents : {r.voters}. Pour : {r.votesFor} · contre : {r.votesAgainst} · abstentions : {r.abstentions}.{" "}
-                  <strong className={r.adopted ? "text-brand-800" : "text-flame-800"}>{r.adopted ? "La résolution est adoptée." : "La résolution est rejetée."}</strong>
-                </p>
-              )}
+              <p className="text-sm text-muted">{pvMajority(r)}</p>
+              {(() => {
+                const vote = pvVote(r);
+                return vote ? (
+                  <p>
+                    {vote.count}{" "}
+                    <strong className={r.adopted ? "text-brand-800" : "text-flame-800"}>{vote.verdict}</strong>
+                  </p>
+                ) : (
+                  <p className="italic">{pvNotVoted(a)}</p>
+                );
+              })()}
             </div>
           ))}
         </section>
@@ -93,23 +69,19 @@ export function ProcesVerbal({ a }: { a: AssemblyDetail }) {
         </section>
       )}
 
-      {a.closedAt && (
-        <p>
-          {carence ? "La carence est constatée" : "L'ordre du jour étant épuisé, la séance est levée"} à {time.format(new Date(a.closedAt))}. De tout ce qui précède, il est dressé le présent procès-verbal.
-        </p>
-      )}
+      {a.closedAt && <p>{pvClosing(a)}</p>}
 
       <div className="mt-6 grid grid-cols-2 gap-8 break-inside-avoid font-sans text-sm">
-        {[["Le président de séance", a.president], ["Le secrétaire de séance", a.secretary]].map(([label, m]) => (
-          <div key={label as string} className="flex flex-col gap-12">
-            <span className="font-semibold">{label as string}</span>
-            <span className="border-t border-ink pt-1">{person(m as AssemblyDetail["president"])}</span>
+        {PV_SIGNATURES.map((label, i) => (
+          <div key={label} className="flex flex-col gap-12">
+            <span className="font-semibold">{label}</span>
+            <span className="border-t border-ink pt-1">{person(i === 0 ? a.president : a.secretary)}</span>
           </div>
         ))}
       </div>
 
       <section className="mt-6 flex flex-col gap-2 break-before-page">
-        <h2 className="font-sans text-lg font-bold">Annexe : liste d'émargement ({a.attendances.length})</h2>
+        <h2 className="font-sans text-lg font-bold">{pvAnnexTitle(a)}</h2>
         {a.attendances.length === 0 ? (
           <p className="text-muted">Aucun membre n'a émargé.</p>
         ) : (
@@ -123,7 +95,7 @@ export function ProcesVerbal({ a }: { a: AssemblyDetail }) {
                   <td className="py-1.5 font-mono">{x.member.number}</td>
                   <td>{x.member.lastName} {x.member.firstNames}</td>
                   <td>{x.canVote ? "Oui" : "Non"}</td>
-                  <td>{time.format(new Date(x.signedAt))}</td>
+                  <td>{hour(x.signedAt)}</td>
                 </tr>
               ))}
             </tbody>

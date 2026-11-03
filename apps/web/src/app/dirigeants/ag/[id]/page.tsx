@@ -9,6 +9,7 @@ import { Badge, Card } from "@/components/ui/card";
 import { Input, RequiredLegend, Select, Textarea } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ASSEMBLY_STATUS, eligibleVoters, getAssembly, KIND_LABELS } from "@/lib/assemblies";
+import { publishedMinutes } from "@/lib/pv-pdf";
 import { canManageAssemblies, requireDirigeant } from "@/lib/session";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
@@ -17,6 +18,7 @@ import {
   closeSessionAction,
   convokeAction,
   openSessionAction,
+  publishMinutesAction,
   removeAttendanceAction,
   removeResolutionAction,
   secondConvocationAction,
@@ -58,6 +60,8 @@ export default async function AssemblyDetailPage({ params, searchParams }: { par
   const toSign = actifs.filter((m) => !signed.has(m.id));
   const eligibleNow = a.status === "PREPARATION" ? (await eligibleVoters()).length : 0;
   const delayNow = convocationDelay(new Date(), new Date(a.scheduledAt));
+  const final = a.status === "CLOTUREE" || a.status === "CARENCE";
+  const minutes = final ? await publishedMinutes(a) : undefined;
 
   return (
     <>
@@ -267,6 +271,22 @@ export default async function AssemblyDetailPage({ params, searchParams }: { par
           </ActionForm>
         </Card>
       ))}
+
+      {final && (
+        <Card>
+          <h2 className="mb-1 text-xl font-bold">PV en PDF</h2>
+          {minutes ? (
+            <p>Publié dans l'espace membres le {formatDate(minutes.publishedAt)} : <a className="font-semibold text-brand-600 underline" href={`/api/documents/${minutes.id}`}>ouvrir le PDF</a>.</p>
+          ) : canManage ? (
+            <ActionForm action={publishMinutesAction.bind(null, a.id)} className="flex flex-wrap items-center gap-3">
+              <p className="flex-[1_1_320px]">Le PV n'est pas encore publié dans les documents officiels. L'application le génère en PDF et le publie pour les membres, avec une actualité et un e-mail.</p>
+              <SubmitButton>Publier le PV</SubmitButton>
+            </ActionForm>
+          ) : (
+            <p className="text-muted">Le PV n'est pas encore publié.</p>
+          )}
+        </Card>
+      )}
 
       {a.status === "CARENCE" && (
         <Card>

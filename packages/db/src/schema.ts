@@ -501,6 +501,29 @@ export const posts = pgTable(
   (t) => [index("posts_visibility_published_idx").on(t.visibility, t.publishedAt)],
 );
 
+/**
+ * Documents officiels (statuts, règlement intérieur, PV, rapports…), publiés par la Secrétaire générale, le CA ou l'administrateur.
+ * Une nouvelle version des statuts, du règlement ou de la présentation archive la précédente (`archivedAt`), sans la supprimer.
+ */
+export const officialDocuments = pgTable(
+  "official_documents",
+  {
+    id: id(),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    adoptedOn: date("adopted_on", { mode: "date" }),
+    visibility: visibility("visibility").notNull().default("PUBLIC"),
+    storageKey: text("storage_key").notNull(),
+    filename: text("filename").notNull(),
+    size: integer("size").notNull(),
+    publishedBy: text("published_by").notNull(),
+    publishedAt: createdAt(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (t) => [index("official_documents_kind_idx").on(t.kind, t.archivedAt)],
+);
+
 export const eventRegistrations = pgTable(
   "event_registrations",
   {

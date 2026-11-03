@@ -1,8 +1,9 @@
 import { asc, db, schema } from "@pride/db";
 import { COMMISSIONS, mandateActive, ROLE_LABELS, type MandateRole } from "@pride/shared";
 import { PageHero } from "@/components/site/page-hero";
-import { ButtonLink } from "@/components/ui/button";
+import { buttonVariants, ButtonLink } from "@/components/ui/button";
 import { Card, Eyebrow } from "@/components/ui/card";
+import { currentDocuments } from "@/lib/documents";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "L'association" };
@@ -18,6 +19,7 @@ const organes = [
 
 export default async function AssociationPage() {
   const today = new Date();
+  const documents = await currentDocuments(false);
   const mandates = await db.query.mandates.findMany({ with: { member: true }, orderBy: asc(schema.mandates.startsAt) });
   const active = mandates
     .filter((m) => ORDER.includes(m.role as MandateRole) && (!m.endsAt || new Date(m.endsAt) >= today))
@@ -105,9 +107,17 @@ export default async function AssociationPage() {
           </Card>
           <Card className="flex flex-col gap-3.5 bg-paper">
             <h3 className="text-[22px] font-bold">Documents officiels</h3>
-            {/* shortcut: pas encore de PDF en ligne ; remplacer par des liens vers public/documents/ dès que les fichiers sont fournis. */}
-            <p className="text-muted">Les statuts, le règlement intérieur et le document de présentation sont disponibles sur simple demande.</p>
-            <ButtonLink href="/contact" variant="outline" size="sm" className="self-start">Demander les documents</ButtonLink>
+            {documents.length > 0 ? (
+              <div className="flex flex-wrap gap-2.5">
+                {/* Simple lien (pas next/link) : c'est un fichier PDF. */}
+                {documents.map((d) => <a key={d.id} href={`/api/documents/${d.id}`} target="_blank" className={buttonVariants({ variant: "outline", size: "sm" })}>{d.title} (PDF)</a>)}
+              </div>
+            ) : (
+              <>
+                <p className="text-muted">Les statuts, le règlement intérieur et le document de présentation sont disponibles sur simple demande.</p>
+                <ButtonLink href="/contact" variant="outline" size="sm" className="self-start">Demander les documents</ButtonLink>
+              </>
+            )}
           </Card>
         </div>
       </section>

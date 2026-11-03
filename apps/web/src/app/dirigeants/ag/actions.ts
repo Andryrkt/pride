@@ -19,6 +19,7 @@ import {
   type AssemblyInput,
 } from "@/lib/assemblies";
 import { createConsultation } from "@/lib/consultations";
+import { publishMinutes } from "@/lib/pv-pdf";
 import { audit, canManageAssemblies, requireDirigeant } from "@/lib/session";
 import type { FormState } from "@/lib/utils";
 
@@ -33,6 +34,32 @@ function fail(e: unknown): FormState {
 }
 
 const invalid = (errors: Record<string, string>): FormState => ({ ok: false, message: "Vérifiez les champs indiqués.", errors });
+
+/** Publie le PV définitif ; un échec n'annule pas la clôture : la Secrétaire générale peut téléverser le PV à la main. */
+async function publishMinutesSafely(id: string, actorId: string) {
+  try {
+    const doc = await publishMinutes(id, actorId);
+    await audit(actorId, "document.publication", doc.id, { kind: "PV", assemblyId: id, automatique: true });
+    revalidatePath("/dirigeants/documents");
+    revalidatePath("/membre/actualites");
+    return " Le PV est publié dans l'espace membres (actualité et e-mail aux membres).";
+  } catch (e) {
+    console.error("Publication automatique du PV impossible", e);
+    return " Attention : le PV n'a pas pu être publié automatiquement ; téléversez-le dans Documents officiels.";
+  }
+}
+
+/** Publication du PV après coup : AG clôturée avant la publication automatique, ou échec de celle-ci. */
+export async function publishMinutesAction(id: string, _p: FormState, _f: FormData): Promise<FormState> {
+  try {
+    const v = await guard();
+    const doc = await publishMinutes(id, v.member.id);
+    await audit(v.member.id, "document.publication", doc.id, { kind: "PV", assemblyId: id, automatique: false });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants/documents");
+  revalidatePath("/membre/actualites");
+  done(id, "Le PV est publié dans l'espace membres (actualité et e-mail aux membres).");
+}
 
 function done(id: string, message: string): never {
   revalidatePath("/dirigeants/ag");
@@ -180,12 +207,14 @@ export async function voteAction(resolutionId: string, id: string, _p: FormState
 }
 
 export async function carenceAction(id: string, _p: FormState, f: FormData): Promise<FormState> {
+  let published = "";
   try {
     const v = await guard();
     await declareCarence(id, String(f.get("notes") ?? "").trim());
     await audit(v.member.id, "ag.carence", id);
+    published = await publishMinutesSafely(id, v.member.id);
   } catch (e) { return fail(e); }
-  done(id, "Carence constatée : le procès-verbal de carence est établi. Convoquez la deuxième AG.");
+  done(id, `Carence constatée : le procès-verbal de carence est établi.${published} Convoquez la deuxième AG.`);
 }
 
 export async function secondConvocationAction(id: string, _p: FormState, f: FormData): Promise<FormState> {
@@ -203,12 +232,14 @@ export async function secondConvocationAction(id: string, _p: FormState, f: Form
 }
 
 export async function closeSessionAction(id: string, _p: FormState, f: FormData): Promise<FormState> {
+  let published = "";
   try {
     const v = await guard();
     await closeSession(id, String(f.get("notes") ?? "").trim());
     await audit(v.member.id, "ag.cloture", id);
+    published = await publishMinutesSafely(id, v.member.id);
   } catch (e) { return fail(e); }
-  done(id, "Séance clôturée : le procès-verbal est définitif.");
+  done(id, `Séance clôturée : le procès-verbal est définitif.${published}`);
 }
 
 /** Consultation en ligne : 2 à 6 réponses (une par ligne), date de clôture dans le futur. */

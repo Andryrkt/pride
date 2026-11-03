@@ -7,7 +7,8 @@ import { Badge, Card } from "@/components/ui/card";
 import { ASSEMBLY_STATUS, KIND_LABELS, listAssemblies } from "@/lib/assemblies";
 import { requireMember } from "@/lib/session";
 import { consultationResults } from "@/lib/consultations";
-import { formatDateTime } from "@/lib/utils";
+import { currentDocuments, DOCUMENT_TYPES, type DocumentType } from "@/lib/documents";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { ConsultationVote } from "./consultation-vote";
 
 export default async function MemberAssembliesPage() {
@@ -15,6 +16,7 @@ export default async function MemberAssembliesPage() {
   // Les AG en préparation ne sont visibles que des dirigeants.
   const assemblies = await listAssemblies(["CONVOQUEE", "EN_SEANCE", "CLOTUREE", "CARENCE"]);
   const votes = canVoteAtAG(member);
+  const documents = await currentDocuments(true);
   const consultations = await Promise.all(
     (await db.query.consultations.findMany({ orderBy: desc(schema.consultations.closesAt), limit: 5 })).map(async (c) => ({
       ...c,
@@ -53,6 +55,22 @@ export default async function MemberAssembliesPage() {
           </ul>
         )}
       </Card>
+      {documents.length > 0 && (
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-xl font-bold">Documents officiels</h2>
+          <ul className="divide-y divide-line">
+            {documents.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                <span className="flex min-w-0 flex-col">
+                  <strong>{d.title}</strong>
+                  <span className="text-sm text-muted">{d.description ?? DOCUMENT_TYPES[d.kind as DocumentType]?.label}{d.adoptedOn ? ` · adopté le ${formatDate(d.adoptedOn)}` : ""}</span>
+                </span>
+                <a href={`/api/documents/${d.id}`} target="_blank" className="font-semibold text-brand-600 hover:underline">PDF</a>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
       {consultations.map((c, i) => (
         <Card key={c.id} id={i === 0 ? "consultations" : undefined} className="flex scroll-mt-4 flex-col gap-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2.5">

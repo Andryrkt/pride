@@ -3,6 +3,7 @@
 // Prérequis : base avec « pnpm db:seed » (comptes de démonstration) et l'application lancée. Peut être relancé.
 //   node tests/ag.e2e.mjs
 import { chromium } from "playwright";
+import pg from "pg";
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 // CHROMIUM_PATH : utiliser un Chromium déjà installé au lieu de « playwright install ».
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
@@ -139,6 +140,33 @@ try {
   await member.goto(`${BASE}/membre/ag/${id2}`);
   await member.getByRole("heading", { name: /Procès-verbal/ }).waitFor();
   log("membre : procès-verbal consultable");
+
+  // 7. PV publié automatiquement en PDF : documents officiels de l'espace membres, actualité, PDF réservé aux membres
+  const pvTitle = `Procès-verbal : AG de test ${stamp}`;
+  await member.goto(`${BASE}/membre/ag`);
+  const pvLink = member.locator("li", { hasText: pvTitle }).filter({ hasNotText: "carence" }).getByRole("link", { name: "PDF" });
+  const pdf = await member.request.get(new URL(await pvLink.getAttribute("href"), BASE).href);
+  if (pdf.headers()["content-type"] !== "application/pdf" || !(await pdf.body()).subarray(0, 5).equals(Buffer.from("%PDF-"))) throw new Error("PV en PDF invalide");
+  await member.locator("li", { hasText: `Procès-verbal de carence : AG de test ${stamp}` }).waitFor();
+  const visitor = await (await browser.newContext()).newPage();
+  if ((await visitor.request.get(new URL(await pvLink.getAttribute("href"), BASE).href)).status() !== 403) throw new Error("PV accessible sans compte");
+  await member.goto(`${BASE}/membre/actualites`);
+  await member.getByText(`Nouveau document : ${pvTitle}`).first().waitFor();
+  log("PV et PV de carence publiés automatiquement en PDF (membres seulement), avec actualité");
+
+  // 8. Publication après coup (AG clôturée avant la publication automatique) : on retire le PV, puis « Publier le PV »
+  await page.goto(ag2);
+  await page.getByRole("link", { name: "ouvrir le PDF" }).waitFor();
+  const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://pride:pride@localhost:5432/pride" });
+  await db.connect();
+  try {
+    await db.query("update official_documents set archived_at = now() where title like $1 and archived_at is null", [`${pvTitle} (%`]);
+  } finally { await db.end(); }
+  await page.reload();
+  await submit(page, page.getByRole("button", { name: "Publier le PV" }), "Le PV est publié dans l'espace membres");
+  await page.getByRole("link", { name: "ouvrir le PDF" }).waitFor();
+  if (await page.getByRole("button", { name: "Publier le PV" }).count()) throw new Error("bouton « Publier le PV » encore affiché");
+  log("PV retiré puis publié après coup depuis la page de l'AG");
 
   await member.goto(`${BASE}/dirigeants/ag`);
   if (!member.url().endsWith("/membre")) throw new Error("un membre accède aux AG des dirigeants");

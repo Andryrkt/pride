@@ -1,6 +1,7 @@
 import "server-only";
 import { and, count, db, eq, gte, inArray, isNull, lte, or, schema } from "@pride/db";
 import type { MandateRole } from "@pride/shared";
+import { DOCUMENT_TYPES, missingDocuments } from "./documents";
 import { expenseList } from "./finances";
 import { unreadForStaff } from "./messaging";
 import type { Viewer } from "./session";
@@ -47,6 +48,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     db.query.mandates.findFirst({ where: and(eq(schema.mandates.role, "TRESORIER"), lte(schema.mandates.startsAt, now), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, now))) }),
     tres ? expenseList() : null,
   ]);
+  const missing = sg ? await missingDocuments() : [];
   const apps = (s: string) => applications.find((a) => a.status === s)?.n ?? 0;
   const exp = (s: string) => expenses.find((e) => e.status === s)?.n ?? 0;
   const unread = (recipient: string) => convs.filter((c) => c.recipient === recipient && unreadForStaff(c)).length;
@@ -65,6 +67,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     for (const x of exclusions.filter((x) => x.hearingAt > now)) {
       add(true, { title: `Audition de ${x.member.firstNames} ${x.member.lastName}`, ref: `Procédure d'exclusion · le ${formatDateTime(x.hearingAt)}`, href: `/dirigeants/membres/${x.memberId}`, cta: "Ouvrir" });
     }
+    for (const k of missing) add(true, { title: `Publier : ${DOCUMENT_TYPES[k].label.toLowerCase()} en vigueur`, ref: "Espace membres et site public · PDF de la version adoptée", href: "/dirigeants/documents", cta: "Publier" });
     add(unread("SECRETARIAT"), { title: `${plural(unread("SECRETARIAT"), "message", "messages")} au Secrétariat général`, ref: "Messagerie des membres", href: "/dirigeants/messages", cta: "Répondre" });
   }
 

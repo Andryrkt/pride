@@ -19,6 +19,8 @@ function getTransporter(): Transporter {
 
 export type MailInput = {
   to: string;
+  /** Copie cachée : les destinataires ne voient pas les adresses des autres (envois à tous les membres). */
+  bcc?: string[];
   subject: string;
   text: string;
   replyTo?: string;
@@ -29,7 +31,7 @@ export type MailInput = {
 export async function sendMail(input: MailInput) {
   const info = await getTransporter().sendMail({ from: env.mailFrom, ...input });
   if (!process.env.SMTP_HOST) {
-    console.info(`[e-mail simulé] à ${input.to} : ${input.subject}`);
+    console.info(`[e-mail simulé] à ${input.to}${input.bcc?.length ? ` (+ ${input.bcc.length} en copie cachée)` : ""} : ${input.subject}`);
   }
   return info;
 }
