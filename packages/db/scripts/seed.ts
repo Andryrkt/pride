@@ -1,6 +1,7 @@
 /**
  * Données initiales : commissions, conseil d'administration et bureau exécutif élus le 27 septembre 2026,
- * premiers articles. Avec SEED_DEMO=1 (par défaut hors production), ajoute deux comptes de démonstration.
+ * premiers articles. Avec SEED_DEMO=1 (par défaut hors production), ajoute les comptes de démonstration.
+ * Avec SEED_ADMIN_EMAIL et SEED_ADMIN_PASSWORD, crée le premier compte administrateur réel.
  *
  *   pnpm db:seed
  */
@@ -131,6 +132,17 @@ async function main() {
     },
   ];
   for (const p of articles) await db.insert(s.posts).values(p).onConflictDoNothing({ target: s.posts.slug });
+
+  // Premier compte administrateur réel (production) : SEED_ADMIN_EMAIL + SEED_ADMIN_PASSWORD. Sans effet si le compte existe.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "";
+  if (adminEmail && adminPassword) {
+    if (adminPassword.length < 12) throw new Error("SEED_ADMIN_PASSWORD : 12 caractères au minimum.");
+    console.log(`Compte administrateur ${adminEmail}…`);
+    const m = await upsertMember({ lastName: "ADMINISTRATEUR", firstNames: "Technique", joinedAt: new Date() });
+    await addMandate(m.id, "ADMIN_TECHNIQUE", new Date(), null);
+    await createLogin(m.id, "Administrateur technique", adminEmail, adminPassword);
+  }
 
   if (DEMO) {
     console.log("Comptes de démonstration (SEED_DEMO=1)…");
