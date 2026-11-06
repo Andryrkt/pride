@@ -2,11 +2,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, db, eq, gte, isNull, or, schema } from "@pride/db";
-import { agrementSchema } from "@pride/shared";
+import { agrementSchema, ROLE_LABELS, type MandateRole } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
 import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
-import { decideExclusion, MembershipError, openExclusion, recordDeparture } from "@/lib/membership";
+import { appointLeader, decideExclusion, endLeaderMandate, MembershipError, openExclusion, recordDeparture } from "@/lib/membership";
 import { MessagingError, staffReply } from "@/lib/messaging";
 import { closeOffer, decideCommissionRequest, decideOffer, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
@@ -302,13 +302,13 @@ export async function decideExclusionAction(procedureId: string, memberId: strin
 }
 
 // ---------------------------------------------------------------------------
-// Rôle de comptable (espace Finances) : désigné par le CA
+// Rôle de comptable (espace Finances) : désigné par le CA ou l'administrateur
 // ---------------------------------------------------------------------------
 
 export async function setComptableAction(memberId: string, on: boolean, _p: FormState): Promise<FormState> {
   try {
     const v = await requireDirigeant();
-    if (!v.isCA) throw new MembershipError("Seul le conseil d'administration désigne le comptable.");
+    if (!v.isCA && !v.isAdmin) throw new MembershipError("Seuls le conseil d'administration et l'administrateur désignent le comptable.");
     const today = new Date(new Date().toISOString().slice(0, 10));
     const running = await db.query.mandates.findMany({ where: and(eq(schema.mandates.memberId, memberId), eq(schema.mandates.role, "COMPTABLE"), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, today))) });
     if (on) {
@@ -324,4 +324,38 @@ export async function setComptableAction(memberId: string, on: boolean, _p: Form
     await audit(v.member.id, on ? "comptable.designation" : "comptable.fin", memberId);
   } catch (e) { return membershipFail(e); }
   memberPage(memberId, on ? "Rôle de comptable attribué : accès à l'espace Finances dès sa prochaine page." : "Rôle de comptable retiré.");
+}
+
+// ---------------------------------------------------------------------------
+// Rôles de dirigeant (CA et bureau exécutif) : attribués par l'administrateur seul
+// ---------------------------------------------------------------------------
+
+async function adminGuard() {
+  const v = await requireDirigeant();
+  if (!v.isAdmin) throw new MembershipError("Seul l'administrateur attribue ou retire les rôles de dirigeant et d'administrateur.");
+  return v;
+}
+
+export async function appointLeaderAction(memberId: string, _p: FormState, f: FormData): Promise<FormState> {
+  const role = String(f.get("role") ?? "") as MandateRole;
+  const startsAt = new Date(String(f.get("startsAt") ?? ""));
+  if (!role) return { ok: false, message: "Choisissez un rôle." };
+  if (Number.isNaN(startsAt.getTime())) return { ok: false, message: "Date de début invalide." };
+  let replaced = 0;
+  try {
+    const v = await adminGuard();
+    replaced = (await appointLeader(memberId, role, startsAt)).replaced;
+    await audit(v.member.id, "dirigeant.designation", memberId, { role, startsAt: f.get("startsAt") });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, `Rôle attribué : ${ROLE_LABELS[role]}.${replaced ? " Le mandat du titulaire précédent se termine la veille." : ""}`);
+}
+
+export async function endLeaderAction(memberId: string, mandateId: string, _p: FormState): Promise<FormState> {
+  let role = "";
+  try {
+    const v = await adminGuard();
+    role = (await endLeaderMandate(memberId, mandateId, v.member.id)).role;
+    await audit(v.member.id, "dirigeant.fin", memberId, { role, mandateId });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, `Rôle retiré : ${ROLE_LABELS[role as MandateRole]}.`);
 }

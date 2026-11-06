@@ -1,6 +1,6 @@
 import "server-only";
 import { and, db, eq, gte, isNull, or, schema, type Tx } from "@pride/db";
-import { exclusionAdopted } from "@pride/shared";
+import { CA_ROLES, DUREE_MANDAT_BUREAU, DUREE_MANDAT_CA, exclusionAdopted, ASSIGNABLE_ROLES, mandateEnd, POSTES_UNIQUES, type MandateRole } from "@pride/shared";
 import { env } from "./env";
 import { sendMail } from "./mail";
 import { formatDate, formatDateTime } from "./utils";
@@ -87,4 +87,42 @@ export async function decideExclusion(procedureId: string, d: { meetingDate: Dat
       : `Bonjour ${proc.member.firstNames},\n\nLe conseil d'administration, réuni le ${formatDate(d.meetingDate)}, n'a pas retenu l'exclusion. La procédure est close et vous restez membre de l'association.\n\nLe conseil d'administration de PRIDe`,
   );
   return { adopted };
+}
+
+/**
+ * Attribue un rôle de dirigeant à partir de `startsAt` (CA : 5 ans, art. 11 ; bureau : 1 an, art. 16).
+ * Poste unique : le mandat du titulaire en cours se termine la veille (annulé s'il commençait le même jour).
+ */
+export async function appointLeader(memberId: string, role: MandateRole, startsAt: Date) {
+  if (!ASSIGNABLE_ROLES.includes(role)) throw new MembershipError("Rôle inconnu.");
+  const member = await db.query.members.findFirst({ where: eq(schema.members.id, memberId) });
+  if (!member || member.status !== "ACTIF" || member.technical) throw new MembershipError("Seul un membre actif peut recevoir un rôle de dirigeant.");
+  return db.transaction(async (tx) => {
+    const open = await tx.query.mandates.findMany({ where: and(eq(schema.mandates.role, role), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, startsAt))) });
+    if (open.some((m) => m.memberId === memberId)) throw new MembershipError("Ce membre a déjà ce rôle à cette date.");
+    const replaced = POSTES_UNIQUES.includes(role) ? open : [];
+    if (replaced.some((m) => new Date(m.startsAt) > startsAt)) throw new MembershipError("Un autre titulaire est déjà prévu après cette date : choisissez une date postérieure.");
+    const eve = new Date(startsAt.getTime() - DAY);
+    for (const m of replaced) await tx.update(schema.mandates).set({ endsAt: eve }).where(eq(schema.mandates.id, m.id));
+    // Administrateur : sans date de fin (comme le premier compte) ; CA 5 ans ; bureau 1 an.
+    const endsAt = role === "ADMIN_TECHNIQUE" ? null : mandateEnd(startsAt, CA_ROLES.includes(role) ? DUREE_MANDAT_CA : DUREE_MANDAT_BUREAU);
+    await tx.insert(schema.mandates).values({ memberId, role, startsAt, endsAt });
+    return { replaced: replaced.length };
+  });
+}
+
+/** Retire un rôle de dirigeant : le mandat se termine hier, l'accès est retiré tout de suite. */
+export async function endLeaderMandate(memberId: string, mandateId: string, actorId: string) {
+  const m = await db.query.mandates.findFirst({ where: and(eq(schema.mandates.id, mandateId), eq(schema.mandates.memberId, memberId)) });
+  if (!m || !ASSIGNABLE_ROLES.includes(m.role as MandateRole)) throw new MembershipError("Mandat introuvable.");
+  const today = new Date(new Date().toISOString().slice(0, 10));
+  if (m.endsAt && new Date(m.endsAt) < today) throw new MembershipError("Ce mandat est déjà terminé.");
+  if (m.role === "ADMIN_TECHNIQUE") {
+    // Ne jamais laisser l'application sans administrateur.
+    if (memberId === actorId) throw new MembershipError("Vous ne pouvez pas retirer votre propre rôle d'administrateur : un autre administrateur doit le faire.");
+    const admins = await db.query.mandates.findMany({ where: and(eq(schema.mandates.role, "ADMIN_TECHNIQUE"), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, today))) });
+    if (admins.length <= 1) throw new MembershipError("C'est le dernier administrateur : nommez-en d'abord un autre.");
+  }
+  await db.update(schema.mandates).set({ endsAt: new Date(today.getTime() - DAY) }).where(eq(schema.mandates.id, mandateId));
+  return m;
 }

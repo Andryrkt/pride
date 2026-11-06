@@ -86,7 +86,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     add(v.isCA && exp("A_VISER"), { title: `${plural(exp("A_VISER"), "dépense", "dépenses")} à viser`, ref: "Pièces signées par le Trésorier, art. 22", href: "/finances/depenses", cta: "Viser" });
     for (const b of drafts) add(v.isCA, { title: `Adopter le budget ${b.year}${b.version > 1 ? " (rectificatif)" : ""}`, ref: "Brouillon préparé par le bureau et les commissions", href: `/finances/budget?annee=${b.year}`, cta: "Ouvrir" });
     add(v.isCA && !numbers, NO_NUMBERS);
-    add(!treasurer, { title: "Désigner un Trésorier", ref: "Bureau exécutif incomplet, art. 14 et 16 · le Coordonnateur remplace temporairement", href: "/dirigeants/membres", cta: "Registre" });
+    add(v.isAdmin && !treasurer, { title: "Désigner un Trésorier", ref: "Bureau exécutif incomplet, art. 14 et 16 · rôle à attribuer sur la fiche du membre · le Coordonnateur remplace temporairement", href: "/dirigeants/membres", cta: "Registre" });
   }
 
   if (coord) {

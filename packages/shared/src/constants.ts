@@ -87,6 +87,15 @@ export type MandateRole = keyof typeof ROLE_LABELS;
 export const CA_ROLES: MandateRole[] = ["PRESIDENT", "VICE_PRESIDENT", "CONSEILLER"];
 /** Rôles du bureau exécutif (statuts, art. 14). */
 export const BUREAU_ROLES: MandateRole[] = ["COORDONNATEUR", "SECRETAIRE_GENERALE", "TRESORIER"];
+/** Rôles de dirigeant attribués par l'administrateur sur la fiche du membre (CA et bureau exécutif). */
+export const LEADER_ROLES: MandateRole[] = [...CA_ROLES, ...BUREAU_ROLES];
+/** Rôles que l'administrateur attribue sur la fiche : dirigeants, et un autre administrateur (sans date de fin). */
+export const ASSIGNABLE_ROLES: MandateRole[] = [...LEADER_ROLES, "ADMIN_TECHNIQUE"];
+/** Durée des mandats en années : CA 5 ans (art. 11), bureau exécutif 1 an (art. 16). */
+export const DUREE_MANDAT_CA = 5;
+export const DUREE_MANDAT_BUREAU = 1;
+/** Rôles tenus par une seule personne à la fois (le CA compte plusieurs conseillers). */
+export const POSTES_UNIQUES: MandateRole[] = ["PRESIDENT", "VICE_PRESIDENT", ...BUREAU_ROLES];
 /** Rôles ayant accès à l'espace dirigeants. */
 export const DIRIGEANT_ROLES: MandateRole[] = [...CA_ROLES, ...BUREAU_ROLES, "ADMIN_TECHNIQUE"];
 

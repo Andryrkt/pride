@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
-import { asc, db, desc, eq, schema } from "@pride/db";
-import { ROLE_LABELS, TARIFS, type MandateRole, type MemberCategory } from "@pride/shared";
+import { and, asc, db, desc, eq, gte, inArray, isNull, lte, or, schema } from "@pride/db";
+import { ASSIGNABLE_ROLES, POSTES_UNIQUES, ROLE_LABELS, TARIFS, type MandateRole, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ActionForm } from "@/components/ui/action-form";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
-import { Input, RequiredLegend, Textarea } from "@/components/ui/field";
+import { Input, RequiredLegend, Select, Textarea } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { MEMBER_STATUS } from "@/lib/labels";
 import { canDecideApplications, requireDirigeant } from "@/lib/session";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { decideExclusionAction, departureAction, openExclusionAction, setComptableAction } from "../../actions";
+import { appointLeaderAction, decideExclusionAction, departureAction, endLeaderAction, openExclusionAction, setComptableAction } from "../../actions";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -28,6 +28,13 @@ export default async function MemberRecordPage({ params, searchParams }: { param
   const canManage = canDecideApplications(v) && m.status === "ACTIF";
   const [label, tone] = MEMBER_STATUS[m.status];
   const isSelf = m.id === v.member.id;
+  const day = new Date(today());
+  const running = (x: { endsAt: Date | null }) => !x.endsAt || new Date(x.endsAt) >= day;
+  const leaderMandates = m.mandates.filter((x) => ASSIGNABLE_ROLES.includes(x.role as MandateRole) && running(x));
+  // Titulaires actuels des postes uniques, affichés dans la liste des rôles.
+  const holders = v.isAdmin
+    ? await db.query.mandates.findMany({ where: and(inArray(schema.mandates.role, POSTES_UNIQUES), lte(schema.mandates.startsAt, day), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, day))), with: { member: true } })
+    : [];
   const isComptable = m.mandates.some((x) => x.role === "COMPTABLE" && (!x.endsAt || new Date(x.endsAt) >= new Date(new Date().toISOString().slice(0, 10))));
 
   return (
@@ -137,7 +144,42 @@ export default async function MemberRecordPage({ params, searchParams }: { param
           </Card>
         </div>
       )}
-      {v.isCA && m.status === "ACTIF" && (
+      {v.isAdmin && m.status === "ACTIF" && !m.technical && (
+        <Card className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xl font-bold">Rôles de dirigeant</h2>
+            <p className="text-[15px] text-muted">Réservé à l'administrateur. Mandat de 5 ans pour le conseil d'administration (art. 11), d'un an pour le bureau exécutif (art. 16), sans date de fin pour un administrateur. Pour un poste tenu par une seule personne, le mandat du titulaire actuel se termine la veille.</p>
+          </div>
+          {leaderMandates.length > 0 && (
+            <ul className="divide-y divide-line text-[15px]">
+              {leaderMandates.map((x) => (
+                <li key={x.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+                  <span><strong>{ROLE_LABELS[x.role as MandateRole]}</strong><span className="text-muted"> · du {formatDate(x.startsAt)} {x.endsAt ? `au ${formatDate(x.endsAt)}` : "(sans fin)"}</span></span>
+                  <ActionForm action={endLeaderAction.bind(null, m.id, x.id)}>
+                    <SubmitButton variant="danger" size="sm">Retirer ce rôle</SubmitButton>
+                  </ActionForm>
+                </li>
+              ))}
+            </ul>
+          )}
+          <ActionForm action={appointLeaderAction.bind(null, m.id)} className="flex flex-col gap-3">
+            <RequiredLegend />
+            <div className="flex flex-wrap items-end gap-3">
+              <Select label="Rôle" name="role" id="leader-role" required defaultValue="" className="flex-[1_1_260px]">
+                <option value="" disabled>Choisir un rôle…</option>
+                {ASSIGNABLE_ROLES.map((r) => {
+                  const holder = POSTES_UNIQUES.includes(r) ? holders.find((h) => h.role === r) : undefined;
+                  const note = POSTES_UNIQUES.includes(r) ? (holder ? ` (actuel : ${holder.member.firstNames} ${holder.member.lastName})` : " (poste vacant)") : "";
+                  return <option key={r} value={r}>{ROLE_LABELS[r] + note}</option>;
+                })}
+              </Select>
+              <Input label="Début du mandat" name="startsAt" id="leader-start" type="date" required defaultValue={today()} className="flex-[0_1_200px]" />
+              <SubmitButton>Attribuer le rôle</SubmitButton>
+            </div>
+          </ActionForm>
+        </Card>
+      )}
+      {(v.isCA || v.isAdmin) && m.status === "ACTIF" && !m.technical && (
         <Card className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold">Rôle de comptable</h2>
