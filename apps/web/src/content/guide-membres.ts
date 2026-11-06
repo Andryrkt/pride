@@ -80,7 +80,7 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     title: "S'inscrire à une formation ou à un événement",
     summary: "Les formations sont animées par les membres eux-mêmes ; les places sont parfois limitées.",
     steps: [
-      { text: "Ouvrez « Formations et offres ». Chaque formation indique sa date, son domaine et les places restantes.", image: "formations-1.png" },
+      { text: "Dans le menu, ouvrez « Apprendre » : l'onglet « Formations et offres » s'affiche. Chaque formation indique sa date, son domaine et les places restantes.", image: "formations-1.png" },
       { text: "Cliquez sur « S'inscrire ». Le bouton devient « Inscrit(e) ✓ »." },
       { text: "Un empêchement ? Cliquez à nouveau sur « Inscrit(e) ✓ » pour libérer votre place." },
       { text: "Pour les autres événements, ouvrez « Actualités » et cliquez sur « Je m'inscris »." },
@@ -94,7 +94,7 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     title: "Stages, emplois et bénévolat : répondre à une offre ou en publier une",
     summary: "Les membres partagent entre eux des offres de stage, d'emploi ou de bénévolat.",
     steps: [
-      { text: "Ouvrez « Formations et offres », onglet « Stages et emplois ».", image: "offres-1.png" },
+      { text: "Ouvrez « Apprendre » (onglet « Formations et offres »), puis « Stages et emplois ».", image: "offres-1.png" },
       { text: "Une offre vous intéresse ? Cliquez sur « Je suis intéressé(e) » : votre nom, votre téléphone et votre e-mail sont transmis à la personne qui l'a publiée, qui vous contacte." },
       { text: "Pour publier une offre, cliquez sur « Publier une offre » en bas de la page : choisissez le type, l'intitulé, la description et le lieu, puis « Proposer l'offre »." },
       { text: "Votre offre est visible par les membres dès qu'un dirigeant l'a validée. Vous recevez un e-mail pour chaque membre intéressé." },
@@ -148,7 +148,7 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     title: "Autodiscipline : objectifs, habitudes et bilans",
     summary: "Un espace personnel pour organiser son temps, tenir ses objectifs et prendre de bonnes habitudes.",
     steps: [
-      { text: "Ouvrez « Autodiscipline » et ajoutez une habitude facile à tenir, par exemple « Lire 10 minutes ». Commencez par une seule : vous pourrez en suivre trois au maximum." },
+      { text: "Ouvrez « Apprendre », onglet « Mes pratiques », puis « Autodiscipline ». Ajoutez une habitude facile à tenir, par exemple « Lire 10 minutes ». Commencez par une seule : vous pourrez en suivre trois au maximum." },
       { text: "Chaque jour, cliquez sur « Fait aujourd'hui ». Si vous avez oublié de cocher la veille, cliquez sur « Fait hier aussi »." },
       { text: "Ajoutez vos objectifs, avec une date limite si vous le souhaitez, puis marquez-les « Atteint » ou « Abandonner »." },
       { text: "Faites votre bilan quand vous le voulez : choisissez « Aujourd'hui » ou « Cette semaine », répondez aux questions, puis enregistrez." },
@@ -158,6 +158,56 @@ export const GUIDE_MEMBRES: GuidePage[] = [
       "Rater un jour n'efface rien : recommencez simplement le lendemain.",
     ],
     links: [{ label: "Autodiscipline", href: "/membre/discipline" }],
+  },
+  {
+    slug: "mon-budget",
+    title: "Mon budget : suivre son argent et épargner",
+    summary: "Une pratique d'intelligence financière : noter ses revenus et ses dépenses, voir où va l'argent, se fixer un objectif d'épargne.",
+    steps: [
+      { text: "Ouvrez « Apprendre », onglet « Mes pratiques », puis « Mon budget »." },
+      { text: "Dans « Ajouter un revenu ou une dépense », choisissez la catégorie (salaire, alimentation, transport…), le montant en ariary et la date, ajoutez un libellé si vous le souhaitez, puis « Ajouter »." },
+      { text: "En haut de la page : vos revenus, vos dépenses et ce qui reste (votre épargne du mois). « Où va mon argent ? » montre la part de chaque type de dépense." },
+      { text: "Fixez une épargne visée par mois dans « Objectif d'épargne » : une barre montre où vous en êtes." },
+      { text: "Une erreur ? Cliquez sur « Supprimer » à côté de la ligne. Les flèches « Mois précédent » et « Mois suivant » montrent les autres mois." },
+    ],
+    tips: [
+      "Ce budget est affiché à vous seul : il ne figure dans aucune page des dirigeants et n'a aucun lien avec la comptabilité de l'association.",
+      "Notez vos dépenses au fil des jours, même les petites (taxi-be, crédit téléphonique) : ce sont souvent elles qui font la différence.",
+      "Mettez de côté au début du mois, pas à la fin : l'épargne devient une dépense prévue.",
+    ],
+    links: [{ label: "Mon budget", href: "/membre/mon-budget" }],
+  },
+  {
+    slug: "ressources",
+    title: "Ressources : textes, vidéos et fiches à télécharger",
+    summary: "Une bibliothèque classée par thème (autodiscipline, intelligence financière, bureautique…), préparée par les membres.",
+    steps: [
+      { text: "Ouvrez « Apprendre », onglet « Ressources ». Choisissez un thème pour filtrer la liste." },
+      { text: "Cliquez sur le titre d'une ressource pour lire son texte complet." },
+      { text: "Une vidéo ? Cliquez sur « Lire la vidéo » : elle ne se charge qu'à ce moment-là." },
+      { text: "Une fiche PDF ? Cliquez sur « Télécharger le PDF » pour la lire ou l'imprimer." },
+    ],
+    tips: [
+      "Les vidéos consomment des données internet : regardez-les de préférence en Wi-Fi. Le texte et la fiche PDF reprennent l'essentiel.",
+      "Certaines ressources sont aussi en vitrine sur le site public, page « Ressources », pour faire connaître l'association.",
+    ],
+    links: [{ label: "Ressources", href: "/membre/ressources" }],
+  },
+  {
+    slug: "publier-ressource",
+    title: "Publier, modifier ou retirer une ressource",
+    summary: "Pour les responsables de la Commission formation et projets, la Secrétaire générale et l'administrateur.",
+    steps: [
+      { text: "Ouvrez « Apprendre », onglet « Ressources ». Le formulaire « Publier une ressource » est sous la liste (il n'apparaît que si vous pouvez publier)." },
+      { text: "Choisissez le thème, puis remplissez le titre, un court résumé et le texte complet." },
+      { text: "Vidéo : publiez-la d'abord sur YouTube (en « non répertoriée » si elle est réservée aux membres), puis collez son lien. Les autres sites ne sont pas acceptés." },
+      { text: "Fiche PDF : ajoutez-la si vous le souhaitez (10 Mo maximum)." },
+      { text: "La ressource est réservée aux membres. Cochez « Mettre en vitrine » pour la montrer aussi sur le site public. Cliquez sur « Publier la ressource »." },
+      { text: "Pour la corriger, ouvrez-la et cliquez sur « Modifier » : vous pouvez tout changer, remplacer ou retirer la fiche PDF, ou la sortir de la vitrine." },
+      { text: "« Retirer cette ressource » la range dans les archives : elle n'est plus visible, mais n'est jamais supprimée." },
+    ],
+    tips: ["Chaque publication, modification ou retrait est enregistré avec votre nom.", "Un texte court et clair, avec des exemples de la vie à Madagascar, est plus utile qu'un long document."],
+    links: [{ label: "Ressources", href: "/membre/ressources" }],
   },
   {
     slug: "assemblee-generale",

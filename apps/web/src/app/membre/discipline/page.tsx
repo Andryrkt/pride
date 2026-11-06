@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { addDays, habitStreak, localDay, MAX_HABITUDES } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
+import { LearnTabs, PracticeTabs } from "@/components/site/resources";
 import { ActionForm } from "@/components/ui/action-form";
 import { Badge, Card } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/field";
@@ -31,6 +32,8 @@ export default async function DisciplinePage({ searchParams }: { searchParams: P
   return (
     <>
       <PageTitle title="Autodiscipline" sub="Organiser son temps, tenir ses objectifs, prendre de bonnes habitudes." />
+      <LearnTabs current="pratiques" />
+      <PracticeTabs current="discipline" />
       <p className="rounded-xl bg-paper px-4 py-3 text-[15px]">Cet espace est affiché à vous seul : il ne figure dans aucune page des dirigeants et n'a aucun effet sur votre statut de membre.</p>
 
       <Card className="flex flex-col gap-4">

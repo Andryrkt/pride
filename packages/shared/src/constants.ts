@@ -65,6 +65,35 @@ export type Majorite = keyof typeof MAJORITES;
 /** Autodiscipline : on commence petit, trois habitudes en cours au maximum. */
 export const MAX_HABITUDES = 3;
 
+/** « Mon budget » (pratique personnelle, visible du membre seul) : catégories ; la catégorie dit s'il s'agit d'un revenu ou d'une dépense. */
+export const BUDGET_CATEGORIES = {
+  SALAIRE: { label: "Salaire", kind: "REVENU" },
+  ACTIVITE: { label: "Activité, commerce", kind: "REVENU" },
+  AIDE_RECUE: { label: "Aide reçue", kind: "REVENU" },
+  AUTRE_REVENU: { label: "Autre revenu", kind: "REVENU" },
+  ALIMENTATION: { label: "Alimentation", kind: "DEPENSE" },
+  TRANSPORT: { label: "Transport", kind: "DEPENSE" },
+  LOGEMENT: { label: "Logement (loyer, eau, électricité)", kind: "DEPENSE" },
+  SANTE: { label: "Santé", kind: "DEPENSE" },
+  EDUCATION: { label: "Éducation", kind: "DEPENSE" },
+  COMMUNICATION: { label: "Téléphone et internet", kind: "DEPENSE" },
+  FAMILLE: { label: "Famille et dons", kind: "DEPENSE" },
+  LOISIRS: { label: "Loisirs", kind: "DEPENSE" },
+  AUTRE_DEPENSE: { label: "Autre dépense", kind: "DEPENSE" },
+} as const;
+export type BudgetCategory = keyof typeof BUDGET_CATEGORIES;
+
+/** Thèmes des ressources (textes, vidéos, PDF) de l'espace « Apprendre ». */
+export const RESOURCE_THEMES = {
+  AUTODISCIPLINE: "Autodiscipline",
+  FINANCES: "Intelligence financière",
+  BUREAUTIQUE: "Bureautique",
+  LANGUES: "Langues",
+  ENTREPRENEURIAT: "Entrepreneuriat",
+  AUTRE: "Autres thèmes",
+} as const;
+export type ResourceTheme = keyof typeof RESOURCE_THEMES;
+
 /** Les responsables de commission sont désignés pour un an. */
 export const DUREE_MANDAT_COMMISSION = 1;
 

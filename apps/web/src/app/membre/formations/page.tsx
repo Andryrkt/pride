@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, asc, desc, db, eq, gte, ne, schema } from "@pride/db";
 import { OFFER_TYPES, TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
+import { LearnTabs } from "@/components/site/resources";
 import { Badge, Card } from "@/components/ui/card";
 import { OFFER_STATUS } from "@/lib/network";
 import { requireMember } from "@/lib/session";
@@ -32,6 +33,7 @@ export default async function TrainingsPage({ searchParams }: { searchParams: Pr
           ))}
         </nav>
       </PageTitle>
+      <LearnTabs current="formations" />
       {tab === "formations" ? <Trainings memberId={member.id} /> : <Offers memberId={member.id} />}
     </>
   );

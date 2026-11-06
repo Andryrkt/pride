@@ -1,4 +1,4 @@
-import { AIDE_SOLIDARITE, AG_CATEGORIES_VOTANTES, AG_DELAI_CONVOCATION_JOURS, PART_SECTION, TARIFS, type Majorite, type SolidariteConcerne, type MemberCategory } from "./constants";
+import { BUDGET_CATEGORIES, type BudgetCategory, AIDE_SOLIDARITE, AG_CATEGORIES_VOTANTES, AG_DELAI_CONVOCATION_JOURS, PART_SECTION, TARIFS, type Majorite, type SolidariteConcerne, type MemberCategory } from "./constants";
 
 /** Format « 10 000 Ar ». */
 export function formatAriary(amount: number): string {
@@ -188,4 +188,54 @@ export function assistantIntent(question: string): AssistantIntent {
   if (/carte|adherent|numero/.test(s)) return "CARTE";
   if (/merci/.test(s)) return "MERCI";
   return "INCONNU";
+}
+
+/**
+ * Identifiant d'une vidéo YouTube à partir du lien collé (watch?v=, youtu.be/, shorts/, embed/), ou null.
+ * Les vidéos ne sont pas hébergées par l'association : on ne garde que des liens YouTube.
+ */
+export function youtubeId(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  const host = u.hostname.replace(/^(www\.|m\.)/, "");
+  let id: string | null = null;
+  if (host === "youtu.be") id = u.pathname.slice(1).split("/")[0] ?? null;
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    id = u.pathname === "/watch" ? u.searchParams.get("v") : (u.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1] ?? null);
+  }
+  return id && /^[\w-]{11}$/.test(id) ? id : null;
+}
+
+/**
+ * Bilan d'un mois de « Mon budget » : revenus, dépenses, reste (ce qui est épargné), dépenses par catégorie
+ * (de la plus grosse à la plus petite, avec leur part), et l'objectif d'épargne du mois s'il y en a un.
+ */
+export function budgetSummary(entries: { category: string; amount: number }[], goal: number | null) {
+  let income = 0;
+  let expenses = 0;
+  const byCat = new Map<string, number>();
+  for (const e of entries) {
+    const kind = BUDGET_CATEGORIES[e.category as BudgetCategory]?.kind;
+    if (kind === "REVENU") income += e.amount;
+    else if (kind === "DEPENSE") {
+      expenses += e.amount;
+      byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amount);
+    }
+  }
+  const balance = income - expenses;
+  const byCategory = [...byCat].map(([category, amount]) => ({ category, amount, share: amount / expenses })).sort((a, b) => b.amount - a.amount);
+  const goalProgress = goal && goal > 0 ? Math.max(0, Math.min(1, balance / goal)) : null;
+  return { income, expenses, balance, byCategory, goal: goal && goal > 0 ? goal : null, goalProgress, goalReached: goalProgress === null ? null : balance >= goal! };
+}
+
+/** Mois voisin d'un mois « AAAA-MM » (`delta` = -1 pour le précédent, +1 pour le suivant). */
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y!, m! - 1 + delta, 1));
+  return d.toISOString().slice(0, 7);
 }

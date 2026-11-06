@@ -8,7 +8,8 @@ import { MENU_COOKIE, NAV_ITEM, NAV_LABEL } from "./nav-style";
 import { SideNav } from "./side-nav";
 import { SignOutButton } from "./sign-out-button";
 
-export type NavItem = { href: string; label: string; badge?: number };
+/** `also` : autres adresses où l'entrée reste en surbrillance (ex. les onglets de « Apprendre »). */
+export type NavItem = { href: string; label: string; badge?: number; also?: string[] };
 
 export async function AppShell({ space, dark, nav, userName, initials, photo, extra, children }: { space: string; dark?: boolean; nav: NavItem[]; userName: string; initials: string; photo?: string | null; extra?: NavItem[]; children: React.ReactNode }) {
   return (

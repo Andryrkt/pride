@@ -544,6 +544,30 @@ export const officialDocuments = pgTable(
   (t) => [index("official_documents_kind_idx").on(t.kind, t.archivedAt)],
 );
 
+/**
+ * Ressources de l'espace « Apprendre » : texte, et si besoin une vidéo YouTube (lien seulement) et un PDF.
+ * Réservées aux membres par défaut, ou en vitrine publique. Publiées par les responsables de la Commission formation et projets,
+ * la Secrétaire générale et l'administrateur ; « Retirer » archive (jamais supprimé).
+ */
+export const resources = pgTable(
+  "resources",
+  {
+    id: id(),
+    theme: text("theme").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    body: text("body").notNull(),
+    videoUrl: text("video_url"),
+    fileKey: text("file_key"),
+    fileName: text("file_name"),
+    visibility: visibility("visibility").notNull().default("MEMBRES"),
+    authorId: text("author_id").notNull().references(() => members.id),
+    publishedAt: createdAt(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (t) => [index("resources_theme_idx").on(t.theme, t.archivedAt)],
+);
+
 export const eventRegistrations = pgTable(
   "event_registrations",
   {
@@ -1024,3 +1048,35 @@ export const habitsRelations = relations(habits, ({ many }) => ({ checks: many(h
 export const habitChecksRelations = relations(habitChecks, ({ one }) => ({
   habit: one(habits, { fields: [habitChecks.habitId], references: [habits.id] }),
 }));
+
+export const resourcesRelations = relations(resources, ({ one }) => ({ author: one(members, { fields: [resources.authorId], references: [members.id] }) }));
+
+// ---------------------------------------------------------------------------
+// « Mon budget » : pratique personnelle (espace Apprendre), visible du membre seul, sans lien avec la comptabilité
+// ---------------------------------------------------------------------------
+
+export const personalBudgetEntries = pgTable(
+  "personal_budget_entries",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    /** Clé de BUDGET_CATEGORIES : elle dit s'il s'agit d'un revenu ou d'une dépense. */
+    category: text("category").notNull(),
+    amount: integer("amount").notNull(), // Ariary
+    label: text("label"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("personal_budget_entries_member_day_idx").on(t.memberId, t.day)],
+);
+
+/** Objectif d'épargne mensuel du membre. */
+export const personalBudgetGoals = pgTable("personal_budget_goals", {
+  memberId: text("member_id")
+    .primaryKey()
+    .references(() => members.id, { onDelete: "cascade" }),
+  monthlySaving: integer("monthly_saving").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

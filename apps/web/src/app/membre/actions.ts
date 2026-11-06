@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { and, count, db, eq, schema } from "@pride/db";
 import { MAX_UPLOAD_BYTES, MESSAGE_RECIPIENTS, type MessageRecipient, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
 import { declarePayment, PaymentError } from "@/lib/dues";
-import { requireMember } from "@/lib/session";
+import { audit, requireMember } from "@/lib/session";
+import { archiveResource, canPublishResources, publishResource, ResourceError, updateResource } from "@/lib/resources";
 import { validateFile } from "@/lib/applications";
 import { declareSolidarity, SolidarityError } from "@/lib/solidarity";
 import { askHelp, closeOffer, expressInterest, NetworkError, proposeOffer, requestCommission, sendProposal } from "@/lib/network";
@@ -12,6 +13,7 @@ import { handOff, HUMAN_RECIPIENTS, MENU_CHIPS, MessagingError, postMemberMessag
 import { ConsultationError, voteConsultation } from "@/lib/consultations";
 import { addGoal, addHabit, closeGoal, DisciplineError, saveReview, stopHabit, toggleCheck } from "@/lib/discipline";
 import { PhotoError, setMemberPhoto } from "@/lib/photo";
+import { addEntry, deleteEntry, PersonalBudgetError, setSavingGoal } from "@/lib/personal-budget";
 import type { FormState } from "@/lib/utils";
 
 export async function declarePaymentAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -279,4 +281,88 @@ export async function closeGoalAction(goalId: string, status: "ATTEINT" | "ABAND
   const v = await requireMember();
   await closeGoal(v.member.id, goalId, status);
   revalidatePath("/membre/discipline");
+}
+
+// ---------------------------------------------------------------------------
+// Ressources de l'espace « Apprendre » (responsables de la Commission formation et projets, Secrétaire générale, administrateur)
+// ---------------------------------------------------------------------------
+
+async function resourcePublisher() {
+  const v = await requireMember();
+  if (!(await canPublishResources(v))) throw new ResourceError("Publication réservée aux responsables de la Commission formation et projets, à la Secrétaire générale et à l'administrateur.");
+  return v;
+}
+
+export async function publishResourceAction(_p: FormState, f: FormData): Promise<FormState> {
+  const get = (k: string) => String(f.get(k) ?? "");
+  const file = f.get("file");
+  let id = "";
+  try {
+    const v = await resourcePublisher();
+    const r = await publishResource({ theme: get("theme"), title: get("title"), summary: get("summary"), body: get("body"), videoUrl: get("videoUrl"), visibility: f.get("vitrine") === "on" ? "PUBLIC" : "MEMBRES" }, file instanceof File ? file : null, v.member.id);
+    await audit(v.member.id, "ressource.publication", r.id, { title: r.title, visibility: r.visibility });
+    id = r.id;
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Publication impossible." };
+  }
+  revalidatePath("/membre/ressources");
+  revalidatePath("/ressources");
+  redirect(`/membre/ressources/${id}?ok=${encodeURIComponent("Ressource publiée.")}`);
+}
+
+export async function updateResourceAction(id: string, _p: FormState, f: FormData): Promise<FormState> {
+  const get = (k: string) => String(f.get(k) ?? "");
+  const file = f.get("file");
+  try {
+    const v = await resourcePublisher();
+    const r = await updateResource(id, { theme: get("theme"), title: get("title"), summary: get("summary"), body: get("body"), videoUrl: get("videoUrl"), visibility: f.get("vitrine") === "on" ? "PUBLIC" : "MEMBRES" }, file instanceof File ? file : null, f.get("removePdf") === "on");
+    await audit(v.member.id, "ressource.modification", id, { title: r.title, visibility: r.visibility });
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Modification impossible." };
+  }
+  revalidatePath("/membre/ressources");
+  revalidatePath("/ressources");
+  redirect(`/membre/ressources/${id}?ok=${encodeURIComponent("Ressource modifiée.")}`);
+}
+
+export async function archiveResourceAction(id: string, _p: FormState): Promise<FormState> {
+  try {
+    const v = await resourcePublisher();
+    const r = await archiveResource(id);
+    await audit(v.member.id, "ressource.retrait", id, { title: r.title });
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Retrait impossible." };
+  }
+  revalidatePath("/membre/ressources");
+  revalidatePath("/ressources");
+  redirect(`/membre/ressources?ok=${encodeURIComponent("Ressource retirée (archivée).")}`);
+}
+
+// ---------------------------------------------------------------------------
+// « Mon budget » (pratique personnelle : seulement les données du membre connecté)
+// ---------------------------------------------------------------------------
+
+async function budgetAction(fn: (memberId: string) => Promise<unknown>, message: string): Promise<FormState> {
+  const v = await requireMember();
+  try {
+    await fn(v.member.id);
+  } catch (e) {
+    if (e instanceof PersonalBudgetError) return { ok: false, message: e.message };
+    throw e;
+  }
+  revalidatePath("/membre/mon-budget");
+  return { ok: true, message };
+}
+
+export async function addBudgetEntryAction(_p: FormState, f: FormData): Promise<FormState> {
+  const get = (k: string) => String(f.get(k) ?? "");
+  return budgetAction((id) => addEntry(id, { category: get("category"), amount: get("amount"), day: get("day"), label: get("label") }), "Ligne ajoutée.");
+}
+
+export async function deleteBudgetEntryAction(entryId: string, _p: FormState): Promise<FormState> {
+  return budgetAction((id) => deleteEntry(id, entryId), "Ligne supprimée.");
+}
+
+export async function setSavingGoalAction(_p: FormState, f: FormData): Promise<FormState> {
+  return budgetAction((id) => setSavingGoal(id, String(f.get("goal") ?? "")), "Objectif d'épargne enregistré.");
 }

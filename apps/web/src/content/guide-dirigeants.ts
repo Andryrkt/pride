@@ -54,6 +54,24 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
     links: [{ label: "Registre des membres", href: "/dirigeants/membres" }],
   },
   {
+    slug: "roles",
+    title: "Attribuer un rôle de dirigeant, d'administrateur ou de comptable",
+    summary: "L'administrateur enregistre dans l'application les rôles décidés par l'AG (conseil d'administration) et par le CA (bureau exécutif).",
+    steps: [
+      { text: "Ouvrez « Registre des membres », puis la fiche du membre." },
+      { text: "Dans « Rôles de dirigeant » (visible de l'administrateur seul), choisissez le rôle : président, vice-président, conseiller, coordonnateur, secrétaire générale, trésorier ou administrateur du site. La liste indique qui occupe chaque poste unique, ou « poste vacant »." },
+      { text: "Indiquez la date de début du mandat, puis « Attribuer le rôle ». La fin est calculée : 5 ans pour le CA (art. 11), 1 an pour le bureau (art. 16), sans fin pour un administrateur." },
+      { text: "Pour un poste tenu par une seule personne (président, vice-président, bureau), le mandat du titulaire actuel se termine la veille." },
+      { text: "Pour retirer un rôle, cliquez sur « Retirer ce rôle » : l'accès à l'espace dirigeants est fermé tout de suite." },
+      { text: "Le rôle de comptable se donne dans l'encadré « Rôle de comptable » de la même fiche, par le CA ou l'administrateur." },
+    ],
+    tips: [
+      "On ne peut pas retirer son propre rôle d'administrateur, ni le dernier administrateur : nommez-en d'abord un autre.",
+      "Chaque attribution et chaque retrait sont enregistrés avec le nom de l'administrateur.",
+    ],
+    links: [{ label: "Registre des membres", href: "/dirigeants/membres" }],
+  },
+  {
     slug: "assemblee-generale",
     title: "Préparer et tenir une assemblée générale",
     summary: "Statuts, art. 18 : convocation 15 jours avant, quorum de la majorité absolue des membres ayant droit de vote, pas de procuration.",

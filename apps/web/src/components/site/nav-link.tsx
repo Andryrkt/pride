@@ -42,10 +42,10 @@ const ICONS: Record<string, LucideIcon> = {
   "/finances/numeros": Smartphone,
 };
 
-export function NavLink({ href, label, badge }: { href: string; label: string; badge?: number }) {
+export function NavLink({ href, label, badge, also }: { href: string; label: string; badge?: number; also?: string[] }) {
   const path = usePathname();
   const root = href === "/membre" || href === "/dirigeants" || href === "/finances";
-  const active = root ? path === href : path.startsWith(href);
+  const active = root ? path === href : [href, ...(also ?? [])].some((h) => path.startsWith(h));
   const Icon = label === "Tableau de bord" ? LayoutDashboard : ICONS[href];
   return (
     <Link

@@ -141,6 +141,20 @@
       "when": 1793967187146,
       "tag": "0019_fiche_technique",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793971756673,
+      "tag": "0020_ressources",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793973486895,
+      "tag": "0021_mon_budget",
+      "breakpoints": true
     }
   ]
 }

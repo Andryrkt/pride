@@ -23,6 +23,7 @@ export function SiteFooter() {
           <strong className="text-white">Liens</strong>
           <Link href="/actualites" className="hover:text-white">Actualités et événements</Link>
           <Link href="/realisations" className="hover:text-white">Nos réalisations</Link>
+          <Link href="/ressources" className="hover:text-white">Ressources</Link>
           <Link href="/adhesion" className="hover:text-white">Devenir membre</Link>
           <Link href="/membre" className="hover:text-white">Espace membres</Link>
           <Link href="/aide" className="hover:text-white">Aide et questions fréquentes</Link>

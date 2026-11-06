@@ -119,7 +119,10 @@ export default function HomePage() {
             <h2 className="text-4xl font-extrabold">Des formations animées par les membres eux-mêmes</h2>
             <p className="text-[17px] text-muted">Conçues par la Commission formation et projets, les thèmes évoluent selon les besoins des membres.</p>
           </div>
-          <ButtonLink href="/adhesion" variant="outline">S'inscrire en devenant membre</ButtonLink>
+          <div className="flex flex-wrap gap-2.5">
+            <ButtonLink href="/ressources" variant="outline">Voir les ressources</ButtonLink>
+            <ButtonLink href="/adhesion" variant="outline">S'inscrire en devenant membre</ButtonLink>
+          </div>
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           {formations.map(([t, d]) => (

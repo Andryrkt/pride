@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeReference, addDays, habitStreak, localDay, weekStart, assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
+import { normalizeReference, youtubeId, budgetSummary, shiftMonth, addDays, habitStreak, localDay, weekStart, assistantIntent, solidarityAmount, normalizePhone, agCanDeliberate, agrementAdopted, canVoteAtAG, convocationDelay, resolutionAdopted, voteValid, exclusionAdopted, formatAriary, isMinor, mandateActive, mandateEnd, memberNumber, periodsBetween, quorumAG, sectionSplit } from "./rules";
 import { applicationSchema, paymentRequestSchema } from "./schemas";
 
 describe("règles des statuts", () => {
@@ -127,5 +127,49 @@ describe("candidature", () => {
     expect(assistantIntent("Je veux parler au trésorier de ma cotisation")).toBe("RESPONSABLE");
     expect(assistantIntent("Merci beaucoup")).toBe("MERCI");
     expect(assistantIntent("Bonjour")).toBe("INCONNU");
+  });
+});
+
+describe("ressources", () => {
+  it("reconnaît les liens YouTube et refuse le reste", () => {
+    expect(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://youtu.be/dQw4w9WgXcQ?si=abc")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://m.youtube.com/shorts/dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId(" https://www.youtube.com/embed/dQw4w9WgXcQ ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://vimeo.com/123456")).toBeNull();
+    expect(youtubeId("https://evil.example/watch?v=dQw4w9WgXcQ")).toBeNull();
+    expect(youtubeId("https://www.youtube.com/watch?v=court")).toBeNull();
+    expect(youtubeId("javascript:alert(1)")).toBeNull();
+    expect(youtubeId("pas un lien")).toBeNull();
+  });
+});
+
+describe("mon budget", () => {
+  it("calcule revenus, dépenses, reste et parts par catégorie", () => {
+    const s = budgetSummary(
+      [
+        { category: "SALAIRE", amount: 400_000 },
+        { category: "ALIMENTATION", amount: 150_000 },
+        { category: "TRANSPORT", amount: 50_000 },
+        { category: "ALIMENTATION", amount: 50_000 },
+        { category: "INCONNUE", amount: 999 },
+      ],
+      100_000,
+    );
+    expect(s).toMatchObject({ income: 400_000, expenses: 250_000, balance: 150_000, goal: 100_000, goalProgress: 1, goalReached: true });
+    expect(s.byCategory).toEqual([
+      { category: "ALIMENTATION", amount: 200_000, share: 0.8 },
+      { category: "TRANSPORT", amount: 50_000, share: 0.2 },
+    ]);
+  });
+  it("objectif non atteint, mois en négatif, pas d'objectif", () => {
+    expect(budgetSummary([{ category: "SALAIRE", amount: 100 }, { category: "LOISIRS", amount: 75 }], 100)).toMatchObject({ balance: 25, goalProgress: 0.25, goalReached: false });
+    expect(budgetSummary([{ category: "LOISIRS", amount: 50 }], 100)).toMatchObject({ balance: -50, goalProgress: 0, goalReached: false });
+    expect(budgetSummary([], null)).toMatchObject({ income: 0, expenses: 0, balance: 0, byCategory: [], goal: null, goalProgress: null, goalReached: null });
+  });
+  it("passe d'un mois à l'autre, y compris en changeant d'année", () => {
+    expect(shiftMonth("2026-01", -1)).toBe("2025-12");
+    expect(shiftMonth("2026-12", 1)).toBe("2027-01");
+    expect(shiftMonth("2026-11", 0)).toBe("2026-11");
   });
 });

@@ -20,6 +20,14 @@ export type DocumentType = keyof typeof DOCUMENT_TYPES;
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
+/** Problème d'un PDF envoyé (vide, trop lourd, pas un PDF), ou null. On vérifie le contenu, pas seulement le type annoncé. */
+export function pdfProblem(content: Buffer): string | null {
+  if (content.length === 0) return "Fichier manquant.";
+  if (content.length > MAX_BYTES) return "Fichier trop lourd (10 Mo maximum).";
+  if (content.subarray(0, 5).toString("latin1") !== "%PDF-") return "Le document doit être un fichier PDF.";
+  return null;
+}
+
 /** Documents en vigueur, statuts et règlement d'abord ; `membersToo` : avec ceux réservés aux membres. */
 export async function currentDocuments(membersToo: boolean) {
   const rows = await db.query.officialDocuments.findMany({
@@ -37,10 +45,8 @@ export const archivedDocuments = () =>
 /** `file` : PDF envoyé par un dirigeant, ou généré par l'application (procès-verbal d'AG). */
 export async function publishDocument(input: { kind: DocumentType; title: string; description: string; adoptedOn: Date | null; visibility: "PUBLIC" | "MEMBRES" }, file: { name: string; content: Buffer }, actorId: string) {
   const { content } = file;
-  if (content.length === 0) throw new DocumentError("Fichier manquant.");
-  if (content.length > MAX_BYTES) throw new DocumentError("Fichier trop lourd (10 Mo maximum).");
-  // On vérifie le contenu, pas seulement le type annoncé par le navigateur.
-  if (content.subarray(0, 5).toString("latin1") !== "%PDF-") throw new DocumentError("Le document doit être un fichier PDF.");
+  const problem = pdfProblem(content);
+  if (problem) throw new DocumentError(problem);
   const key = `documents/${input.kind.toLowerCase()}-${crypto.randomUUID()}.pdf`;
   await putFile(key, content, "application/pdf");
   return db.transaction(async (tx) => {
