@@ -24,7 +24,8 @@ RUN pnpm --filter @pride/web build \
 FROM node:22-bookworm-slim AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 TZ=Indian/Antananarivo
 WORKDIR /app
-RUN groupadd --system pride && useradd --system --gid pride pride
+RUN groupadd --system pride && useradd --system --gid pride pride \
+ && mkdir -p /app/uploads && chown pride:pride /app/uploads
 COPY --from=build --chown=pride:pride /app/apps/web/.next/standalone ./
 COPY --from=build --chown=pride:pride /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=pride:pride /app/apps/web/public ./apps/web/public

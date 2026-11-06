@@ -27,7 +27,7 @@ Les règles viennent des **statuts et du règlement intérieur adoptés le 27 se
 | Fichiers | MinIO en local, tout service compatible S3 en production (ou le disque) |
 | E-mails | Nodemailer, avec Mailpit en local |
 | Paiements | MVola, Orange Money, Airtel Money : envoi par le membre, déclaration de la référence, vérification par le comptable ; espèces |
-| Déploiement | Docker, Docker Compose, Caddy (HTTPS automatique) |
+| Déploiement | Docker Compose sur Dokploy (HTTPS par Dokploy) |
 | Qualité | Vitest (règles des statuts), test de bout en bout Playwright, GitHub Actions |
 
 > **Pourquoi Drizzle plutôt que Prisma ?** Drizzle est 100 % TypeScript : il n'y a aucun moteur à télécharger, ce qui simplifie Docker et les serveurs. Le schéma est dans `packages/db/src/schema.ts`.
@@ -91,7 +91,7 @@ apps/
 packages/
   db/             Schéma Drizzle, migrations SQL, scripts de migration et de données initiales
   shared/         Règles des statuts (tarifs, majorités, quorum…), schémas de validation Zod, tests
-docker/           Entrypoint de l'image et configuration Caddy
+docker/           Entrypoint de l'image
 tests/            Parcours de bout en bout (Playwright)
 ```
 
@@ -140,9 +140,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml exec web node migrator/seed.mjs   # une seule fois (SEED_DEMO=0 par défaut en production)
 ```
 
-Au démarrage, l'image applique automatiquement les migrations. Caddy obtient le certificat HTTPS.
+Au démarrage, l'image applique automatiquement les migrations. Dokploy fournit le certificat HTTPS (onglet Domains).
 
-**Sauvegardes** : les statuts demandent une sauvegarde mensuelle. Planifiez par exemple `pg_dump` et une copie du volume MinIO (`minio-data`).
+**Sauvegardes** : les statuts demandent une sauvegarde mensuelle. Planifiez par exemple `pg_dump` et une copie du volume des fichiers (`uploads`).
 
 ---
 

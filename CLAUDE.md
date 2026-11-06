@@ -24,7 +24,7 @@ L'équipe de développement est composée de bénévoles. Parlez en **français*
   - Nouvelle migration : `pnpm --filter @pride/db migrate:new`.
   - Appliquer les migrations : `pnpm db:deploy`.
 - `packages/shared` : règles des statuts et schémas Zod, partagés entre le web, le mobile et le serveur.
-- Fichiers : S3/MinIO, ou disque si `S3_ENDPOINT` est vide. E-mails : Nodemailer (Mailpit en local).
+- Fichiers : S3/MinIO, ou disque si `S3_ENDPOINT` est vide (cas de la production : volume `uploads`, MinIO ayant retiré ses images de Docker Hub). E-mails : Nodemailer (Mailpit en local).
 - Paiements : **pas de lien direct avec les opérateurs** (choix validé : le paiement direct ne rassure pas encore à Madagascar). Le membre envoie l'argent par son menu habituel, déclare la référence, le comptable vérifie. Les frais d'envoi sont à la charge du membre.
 - Les comptes membres sont créés **uniquement après l'agrément** : l'inscription libre est désactivée.
 - Visibilité des actualités : `PUBLIC` (tout le monde) ou `MEMBRES`.
@@ -66,7 +66,7 @@ DATABASE_URL=…/pride_check pnpm --filter @pride/web exec tsx --conditions=reac
   - espace dirigeants : agrément CA, registre, publication des actualités ;
   - API REST `/api/v1` pour le mobile ;
   - application mobile : connexion, accueil, cotisations, actualités, profil ;
-  - Docker, Caddy et CI GitHub.
+  - Docker (déploiement Dokploy, HTTPS par Dokploy) et CI GitHub.
 - **Fait (phase 3)** :
   - commissions : responsables désignés pour 1 an par le CA, le Coordonnateur ou l'administrateur ; remplacement (le mandat précédent se termine la veille, ou est annulé s'il commençait le même jour), fin anticipée, composition des équipes, responsables affichés sur la page publique. Test : `node tests/commissions.e2e.mjs`.
   - inscription publique aux événements (« Je participe » : nom + téléphone, un numéro par événement, liste des inscrits dans Dirigeants › Actualités). Les événements « membres » restent absents de l'agenda public (choix validé). Test : `node tests/inscriptions.e2e.mjs`.
