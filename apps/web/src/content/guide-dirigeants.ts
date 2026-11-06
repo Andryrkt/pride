@@ -12,7 +12,7 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
       { text: "Les pastilles rouges du menu signalent ce qui attend une action : candidatures, demandes de commission, aides de solidarité, offres, messages." },
       { text: "Agrément des adhésions, registre (démission, exclusion), AG et consultations : conseil d'administration, Secrétaire générale et administrateur." },
       { text: "Commissions (responsables, composition, demandes d'entrée) : conseil d'administration, Coordonnateur et administrateur." },
-      { text: "Aides de solidarité : conseil d'administration, bureau exécutif et administrateur. Offres des membres, messagerie, publications : tous les dirigeants." },
+      { text: "Aides de solidarité : conseil d'administration et bureau exécutif. Offres des membres, messagerie, publications : tous les dirigeants." },
     ],
     tips: [
       "Chaque action d'un dirigeant est enregistrée dans le journal de l'application (qui, quoi, quand).",

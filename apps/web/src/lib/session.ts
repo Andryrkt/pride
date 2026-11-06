@@ -99,9 +99,9 @@ export async function requireFinances() {
   return { ...v, canRecord: canRecordFinances(v), canSign: canSignExpenses(v), canApprove: canApproveExpenses(v) };
 }
 
-/** Décision sur les aides de solidarité : CA, bureau exécutif (dont le Trésorier), administrateur. */
+/** Décision sur les aides de solidarité : CA, bureau exécutif (dont le Trésorier). */
 export function canHandleSolidarity(v: NonNullable<Viewer>) {
-  return v.isCA || v.isBureau || v.isAdmin;
+  return v.isCA || v.isBureau;
 }
 
 export async function audit(actorId: string | null, action: string, target?: string, details?: unknown) {

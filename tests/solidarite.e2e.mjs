@@ -72,33 +72,44 @@ try {
   if (member.url().includes("/dirigeants")) fail("un simple membre accède à la page Solidarité des dirigeants");
   log("page dirigeants refusée à un simple membre");
 
-  const admin = await login("admin@pride.local");
-  await admin.goto(`${BASE}/dirigeants/solidarite`);
+  const ca = await login("ca@pride.local");
+  await ca.goto(`${BASE}/dirigeants/solidarite`);
   const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-  const reqA = admin.locator("div.rounded-2xl", { hasText: `le ${fmt(DATE_A)}` }).filter({ hasText: "Naissance" }).last();
-  const reqB = admin.locator("div.rounded-2xl", { hasText: `le ${fmt(DATE_B)}` }).filter({ hasText: "Décès" }).last();
+  const reqA = ca.locator("div.rounded-2xl", { hasText: `le ${fmt(DATE_A)}` }).filter({ hasText: "Naissance" }).last();
+  const reqB = ca.locator("div.rounded-2xl", { hasText: `le ${fmt(DATE_B)}` }).filter({ hasText: "Décès" }).last();
   await reqA.getByText("50 000 Ar").first().waitFor();
   await reqB.getByText("25 000 Ar").first().waitFor();
   log("demandes visibles avec le bon montant (50 000 / 25 000 Ar)");
 
   const link = reqA.getByRole("link", { name: /Pièce jointe : cv\.pdf/ });
-  const res = await admin.request.get(new URL(await link.getAttribute("href"), BASE).href);
+  const res = await ca.request.get(new URL(await link.getAttribute("href"), BASE).href);
   if (res.status() !== 200 || res.headers()["content-type"] !== "application/pdf") fail(`pièce jointe illisible (${res.status()})`);
   if (await reqB.getByRole("link", { name: /Pièce jointe/ }).count()) fail("pièce jointe affichée sur une demande qui n'en a pas");
   const anon = await (await browser.newContext()).request.get(new URL(await link.getAttribute("href"), BASE).href);
   if (anon.status() !== 403) fail(`pièce jointe accessible sans connexion (${anon.status()})`);
   log("pièce jointe ouverte par le dirigeant, refusée sans connexion");
 
+  // L'administrateur voit les demandes, mais ne décide pas et n'ouvre pas les pièces jointes
+  const admin = await login("admin@pride.local");
+  await admin.goto(`${BASE}/dirigeants/solidarite`);
+  const adminReq = admin.locator("div.rounded-2xl", { hasText: `le ${fmt(DATE_A)}` }).filter({ hasText: "Naissance" }).last();
+  await adminReq.getByText("Décision réservée").waitFor();
+  if (await adminReq.getByRole("button", { name: /^Accorder/ }).count()) fail("l'administrateur peut décider d'une aide");
+  if (await adminReq.getByRole("link", { name: /Pièce jointe/ }).count()) fail("lien de pièce jointe affiché à l'administrateur");
+  const adminFile = await admin.request.get(new URL(await link.getAttribute("href"), BASE).href);
+  if (adminFile.status() !== 403) fail(`pièce jointe accessible à l'administrateur (${adminFile.status()})`);
+  log("administrateur : demandes visibles, décision et pièce jointe refusées");
+
   await reqB.getByRole("button", { name: "Refuser" }).click();
   // Le navigateur bloque l'envoi (champ obligatoire) ; le serveur refuse aussi un motif vide.
   if (!(await reqB.getByLabel("Motif du refus").evaluate((i) => i.validity.valueMissing))) fail("refus envoyé sans motif");
   await reqB.getByLabel("Motif du refus").fill("Test automatique : refus fictif.");
   await reqB.getByRole("button", { name: "Refuser" }).click();
-  await admin.getByText("Demande refusée").waitFor();
+  await ca.getByText("Demande refusée").waitFor();
   log("refus sans motif bloqué, puis refus motivé");
 
   await reqA.getByRole("button", { name: /^Accorder/ }).click();
-  await admin.getByText("Aide accordée").waitFor();
+  await ca.getByText("Aide accordée").waitFor();
   log("aide accordée");
 
   await member.goto(`${BASE}/membre`);

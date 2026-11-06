@@ -43,7 +43,7 @@ export default async function SolidarityPage({ searchParams }: { searchParams: P
               <strong className="text-lg whitespace-nowrap">{formatAriary(r.amount)}</strong>
             </div>
             {r.message && <p className="rounded-xl bg-paper px-4 py-3 whitespace-pre-line">{r.message}</p>}
-            {r.attachmentName && (
+            {canDecide && r.attachmentName && (
               <a href={`/api/solidarite/${r.id}`} target="_blank" className="flex items-center gap-2 self-start font-semibold text-brand-600 hover:underline">
                 <Paperclip size={18} aria-hidden /> Pièce jointe : {r.attachmentName}
               </a>

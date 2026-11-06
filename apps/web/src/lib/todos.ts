@@ -105,7 +105,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
   add(has("TRESORIER") && unread("TRESORIER"), { title: `${plural(unread("TRESORIER"), "message", "messages")} au Trésorier`, ref: "Messagerie des membres", href: "/dirigeants/messages", cta: "Répondre" });
 
   // Tous les dirigeants du CA et du bureau
-  add((ca || v.isBureau) && aids, { title: `${plural(aids, "demande", "demandes")} d'aide de solidarité`, ref: "50 000 Ar au membre, 25 000 Ar à la famille", href: "/dirigeants/solidarite", cta: "Décider" });
+  add((v.isCA || v.isBureau) && aids, { title: `${plural(aids, "demande", "demandes")} d'aide de solidarité`, ref: "50 000 Ar au membre, 25 000 Ar à la famille", href: "/dirigeants/solidarite", cta: "Décider" });
   add(offers, { title: `${plural(offers, "offre", "offres")} de membre à valider`, ref: "Stages, emplois, bénévolat", href: "/dirigeants/offres", cta: "Valider" });
 
   return todos.filter((t, i) => todos.findIndex((o) => o.title === t.title) === i);

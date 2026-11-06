@@ -302,13 +302,13 @@ export async function decideExclusionAction(procedureId: string, memberId: strin
 }
 
 // ---------------------------------------------------------------------------
-// Rôle de comptable (espace Finances) : désigné par le CA ou l'administrateur
+// Rôle de comptable (espace Finances) : désigné par le CA
 // ---------------------------------------------------------------------------
 
 export async function setComptableAction(memberId: string, on: boolean, _p: FormState): Promise<FormState> {
   try {
     const v = await requireDirigeant();
-    if (!v.isCA && !v.isAdmin) throw new MembershipError("Seuls le conseil d'administration et l'administrateur désignent le comptable.");
+    if (!v.isCA) throw new MembershipError("Seul le conseil d'administration désigne le comptable.");
     const today = new Date(new Date().toISOString().slice(0, 10));
     const running = await db.query.mandates.findMany({ where: and(eq(schema.mandates.memberId, memberId), eq(schema.mandates.role, "COMPTABLE"), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, today))) });
     if (on) {

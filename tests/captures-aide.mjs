@@ -101,10 +101,15 @@ async function session(email) {
   await shot("dirigeants", "publier-1.png");
   await page.goto(`${BASE}/dirigeants/commissions/communication`);
   await shot("dirigeants", "commissions-1.png");
-  await page.goto(`${BASE}/dirigeants/solidarite`);
-  await shot("dirigeants", "solidarite-1.png");
   await page.goto(`${BASE}/dirigeants/messages`);
   await shot("dirigeants", "messagerie-1.png");
+  await page.close();
+}
+{
+  // L'administrateur ne décide pas des aides : capture avec un membre du CA.
+  const { page, shot } = await session("ca@pride.local");
+  await page.goto(`${BASE}/dirigeants/solidarite`);
+  await shot("dirigeants", "solidarite-1.png");
   await page.close();
 }
 

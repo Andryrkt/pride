@@ -137,7 +137,7 @@ export default async function MemberRecordPage({ params, searchParams }: { param
           </Card>
         </div>
       )}
-      {(v.isCA || v.isAdmin) && m.status === "ACTIF" && (
+      {v.isCA && m.status === "ACTIF" && (
         <Card className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold">Rôle de comptable</h2>

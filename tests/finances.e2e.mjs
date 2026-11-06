@@ -161,15 +161,18 @@ try {
   await comptable.locator("#compte-AIDES_SOLIDARITE").getByText(`FINANCES-B-${run}`).waitFor();
   log("livre : recette, rectification et aide rangées dans leur compte");
 
-  // 8. Désignation et retrait du comptable par l'administrateur
+  // 8. Désignation et retrait du comptable par le CA, pas par l'administrateur
   await admin.goto(`${BASE}/dirigeants/membres/${futureComptable}`);
-  await admin.getByRole("button", { name: "Désigner comme comptable" }).click();
-  await admin.getByText("Rôle de comptable attribué").waitFor();
-  await admin.getByRole("button", { name: "Retirer le rôle de comptable" }).click();
-  await admin.getByText("Rôle de comptable retiré").waitFor();
+  await admin.getByRole("heading", { name: "Mandats" }).waitFor();
+  if (await admin.getByRole("button", { name: "Désigner comme comptable" }).count()) fail("l'administrateur peut désigner le comptable");
+  await ca.goto(`${BASE}/dirigeants/membres/${futureComptable}`);
+  await ca.getByRole("button", { name: "Désigner comme comptable" }).click();
+  await ca.getByText("Rôle de comptable attribué").waitFor();
+  await ca.getByRole("button", { name: "Retirer le rôle de comptable" }).click();
+  await ca.getByText("Rôle de comptable retiré").waitFor();
   const { rows: m } = await db.query("select ends_at from mandates where member_id = $1 and role = 'COMPTABLE'", [futureComptable]);
   if (m.length !== 1 || !m[0].ends_at) fail("mandat de comptable non terminé");
-  log("administrateur : désignation puis retrait du rôle de comptable");
+  log("CA : désignation puis retrait du rôle de comptable ; refusés à l'administrateur");
 
   console.log("\nTous les contrôles sont passés.");
 } catch (e) {
