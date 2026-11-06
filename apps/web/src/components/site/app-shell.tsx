@@ -1,12 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CircleHelp, House } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "./nav-link";
+import { cookies } from "next/headers";
+import { MENU_COOKIE, NAV_ITEM, NAV_LABEL } from "./nav-style";
+import { SideNav } from "./side-nav";
 import { SignOutButton } from "./sign-out-button";
 
 export type NavItem = { href: string; label: string; badge?: number };
 
-export function AppShell({ space, dark, nav, userName, initials, extra, children }: { space: string; dark?: boolean; nav: NavItem[]; userName: string; initials: string; extra?: NavItem[]; children: React.ReactNode }) {
+export async function AppShell({ space, dark, nav, userName, initials, extra, children }: { space: string; dark?: boolean; nav: NavItem[]; userName: string; initials: string; extra?: NavItem[]; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper print:bg-white">
       <header className={cn("flex flex-wrap items-center gap-4 px-6 py-3 print:hidden", dark ? "bg-brand-900 text-white" : "border-b border-line bg-white")}>
@@ -20,16 +24,16 @@ export function AppShell({ space, dark, nav, userName, initials, extra, children
         </div>
       </header>
       <div className="mx-auto flex max-w-[1320px] flex-wrap gap-7 px-4 py-7 sm:px-6 print:block print:p-0">
-        <nav aria-label="Menu" className="flex flex-[1_1_220px] flex-col gap-1 lg:max-w-[250px] print:hidden">
+        <SideNav initialClosed={(await cookies()).get(MENU_COOKIE)?.value === "1"}>
           {nav.map((n) => (
             <NavLink key={n.href} {...n} />
           ))}
-          <hr className="my-2 border-line" />
+          <hr className={cn("my-2 border-line", NAV_ITEM)} />
           {extra?.map((n) => <NavLink key={n.href} {...n} />)}
-          <Link href="/aide" className="rounded-xl px-3.5 py-2.5 font-medium text-[#2b3832] hover:bg-[#e9eee8]">Aide</Link>
-          <Link href="/" className="rounded-xl px-3.5 py-2.5 font-medium text-[#2b3832] hover:bg-[#e9eee8]">Retour au site</Link>
+          <Link href="/aide" className={cn("flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium text-[#2b3832] hover:bg-[#e9eee8]", NAV_ITEM)}><CircleHelp className="size-5 shrink-0" aria-hidden /><span className={NAV_LABEL}>Aide</span></Link>
+          <Link href="/" className={cn("flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium text-[#2b3832] hover:bg-[#e9eee8]", NAV_ITEM)}><House className="size-5 shrink-0" aria-hidden /><span className={NAV_LABEL}>Retour au site</span></Link>
           <SignOutButton />
-        </nav>
+        </SideNav>
         <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-6">{children}</main>
       </div>
     </div>
