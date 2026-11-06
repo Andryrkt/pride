@@ -21,6 +21,7 @@ export default async function DirigeantsLayout({ children }: { children: React.R
       space="Espace dirigeants"
       userName={ROLE_LABELS[v.roles[0]!]}
       initials={(v.member.firstNames[0] ?? "") + (v.member.lastName[0] ?? "")}
+      photo={v.member.photoKey ? `/api/photo/${v.member.id}?v=${encodeURIComponent(v.member.photoKey)}` : null}
       nav={[
         { href: "/dirigeants", label: "Tableau de bord" },
         { href: "/dirigeants/adhesions", label: "Agrément des adhésions", badge: n },

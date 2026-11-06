@@ -18,6 +18,7 @@ export default async function MemberLayout({ children }: { children: React.React
       space="Espace membres"
       userName={`${m.firstNames} ${m.lastName.charAt(0)}.`}
       initials={(m.firstNames[0] ?? "") + (m.lastName[0] ?? "")}
+      photo={m.photoKey ? `/api/photo/${m.id}?v=${encodeURIComponent(m.photoKey)}` : null}
       nav={[
         { href: "/membre", label: "Tableau de bord" },
         { href: "/membre/actualites", label: "Actualités", badge: news },

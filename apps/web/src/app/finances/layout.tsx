@@ -12,6 +12,7 @@ export default async function FinancesLayout({ children }: { children: React.Rea
       space="Finances"
       userName={v.isComptable ? "Comptable" : `${v.member.firstNames} ${v.member.lastName.charAt(0)}.`}
       initials={(v.member.firstNames[0] ?? "") + (v.member.lastName[0] ?? "")}
+      photo={v.member.photoKey ? `/api/photo/${v.member.id}?v=${encodeURIComponent(v.member.photoKey)}` : null}
       nav={[
         { href: "/finances", label: "Tableau de bord" },
         { href: "/finances/journal", label: "Journal comptable" },
