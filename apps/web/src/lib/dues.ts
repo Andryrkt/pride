@@ -8,9 +8,12 @@ import { putFile } from "./storage";
 
 type Member = typeof schema.members.$inferSelect;
 
-/** Crée les cotisations mensuelles manquantes jusqu'au mois courant. */
+/**
+ * Crée les cotisations mensuelles manquantes jusqu'au mois courant.
+ * La fiche technique du premier administrateur n'en a pas : elle n'entre ni dans les montants attendus ni dans les retards.
+ */
 export async function ensureDues(member: Member, now = new Date()) {
-  if (member.status !== "ACTIF") return;
+  if (member.status !== "ACTIF" || member.technical) return;
   const joined = periodOf(new Date(member.joinedAt));
   const start = joined > env.duesStartPeriod ? joined : env.duesStartPeriod;
   const [y, m] = start.split("-").map(Number);

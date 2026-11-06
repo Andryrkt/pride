@@ -63,10 +63,10 @@ async function load(id: string, allowed: Status[], action: string) {
   return a;
 }
 
-/** Membres ayant le droit de vote aujourd'hui (actifs majeurs, sans procuration). */
+/** Membres ayant le droit de vote aujourd'hui (actifs majeurs, sans procuration ; la fiche technique de l'administrateur n'est pas un membre). */
 export async function eligibleVoters() {
   const actifs = await db.query.members.findMany({ where: eq(schema.members.status, "ACTIF") });
-  return actifs.filter((m) => canVoteAtAG(m));
+  return actifs.filter((m) => !m.technical && canVoteAtAG(m));
 }
 
 export type AssemblyInput = { kind: "ORDINAIRE" | "EXTRAORDINAIRE"; title: string; scheduledAt: Date; location: string; agenda: string };

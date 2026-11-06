@@ -134,6 +134,13 @@
       "when": 1793703359400,
       "tag": "0018_paiement_declare",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793967187146,
+      "tag": "0019_fiche_technique",
+      "breakpoints": true
     }
   ]
 }

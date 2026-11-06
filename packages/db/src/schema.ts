@@ -116,6 +116,8 @@ export const members = pgTable(
     skills: text("skills").array().notNull().default(sql`'{}'::text[]`),
     /** Accord du membre pour figurer dans l'annuaire des compétences (loi n° 2014-038) : non par défaut. */
     shareSkills: boolean("share_skills").notNull().default(false),
+    /** Fiche technique du premier compte administrateur (pas une personne) : sans cotisation, hors du compte des membres et du quorum. */
+    technical: boolean("technical").notNull().default(false),
     category: memberCategory("category").notNull().default("ACTIF"),
     status: memberStatus("status").notNull().default("ACTIF"),
     /** Fin de la qualité de membre (démission, exclusion, décès) : date et note du registre. */

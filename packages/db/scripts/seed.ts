@@ -15,7 +15,7 @@ const DEMO = (process.env.SEED_DEMO ?? (process.env.NODE_ENV === "production" ? 
 const AG_DATE = new Date("2026-09-27");
 const plusYears = (d: Date, n: number) => new Date(d.getFullYear() + n, d.getMonth(), d.getDate());
 
-async function upsertMember(input: { lastName: string; firstNames: string; isFounder?: boolean; email?: string; phone?: string; address?: string; joinedAt?: Date }) {
+async function upsertMember(input: { lastName: string; firstNames: string; isFounder?: boolean; technical?: boolean; email?: string; phone?: string; address?: string; joinedAt?: Date }) {
   const existing = await db.query.members.findFirst({
     where: and(eq(s.members.lastName, input.lastName), eq(s.members.firstNames, input.firstNames)),
   });
@@ -139,14 +139,14 @@ async function main() {
   if (adminEmail && adminPassword) {
     if (adminPassword.length < 12) throw new Error("SEED_ADMIN_PASSWORD : 12 caractères au minimum.");
     console.log(`Compte administrateur ${adminEmail}…`);
-    const m = await upsertMember({ lastName: "ADMINISTRATEUR", firstNames: "Technique", joinedAt: new Date() });
+    const m = await upsertMember({ lastName: "ADMINISTRATEUR", firstNames: "Technique", technical: true, joinedAt: new Date() });
     await addMandate(m.id, "ADMIN_TECHNIQUE", new Date(), null);
     await createLogin(m.id, "Administrateur technique", adminEmail, adminPassword);
   }
 
   if (DEMO) {
     console.log("Comptes de démonstration (SEED_DEMO=1)…");
-    const admin = await upsertMember({ lastName: "Démo", firstNames: "Administrateur", joinedAt: new Date("2026-01-01") });
+    const admin = await upsertMember({ lastName: "Démo", firstNames: "Administrateur", technical: true, joinedAt: new Date("2026-01-01") });
     await addMandate(admin.id, "ADMIN_TECHNIQUE", new Date("2026-01-01"), null);
     await createLogin(admin.id, "Administrateur Démo", "admin@pride.local", "PrideDemo2026!");
 

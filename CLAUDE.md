@@ -5,7 +5,7 @@ L'équipe de développement est composée de bénévoles. Parlez en **français*
 
 ## Sources de vérité métier
 - Statuts et règlement intérieur adoptés par l'AG du **27 septembre 2026**. Les règles codées sont dans `packages/shared/src/constants.ts` et `rules.ts`, avec les tests dans `rules.test.ts`.
-- Cotisations : actif 5 000 Ar d'entrée + 10 000 Ar/mois ; mineur 5 000 + 5 000 ; bienfaiteur 20 000 + 60 000.
+- Cotisations : actif 5 000 Ar d'entrée + 10 000 Ar/mois ; mineur 5 000 + 5 000 ; bienfaiteur 20 000 + 60 000. La **fiche technique du premier compte administrateur** (`members.technical`, posée par le seed et la migration `0019`) ne paie pas de cotisation (`ensureDues`), n'est comptée ni dans les « membres actifs » ni dans le quorum de l'AG, et sa carte affiche « Dispensé de cotisation ». Un vrai membre nommé administrateur paie normalement.
 - Agrément d'un membre : majorité des membres du CA **présents**. Exclusion : 2/3 des présents, après que le membre a pu se défendre.
 - Mineurs : un parent ou tuteur doit être membre ; pas de vote à l'AG.
 - Sections régionales : 90 % des cotisations pour la section, 10 % pour l'association.

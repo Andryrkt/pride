@@ -80,7 +80,7 @@ export default async function MemberDashboard() {
               <span className="font-display text-xl leading-tight font-extrabold text-white">{member.lastName}</span>
               <span className="font-display text-[17px] leading-tight font-bold text-white">{member.firstNames}</span>
               <span className="mt-1 text-[13px]">N° {member.number} · {category}</span>
-              <span className="text-[13px]">{lastPaid ? `Cotisations à jour jusqu'à ${periodLabel(lastPaid.period)}` : "Aucune cotisation réglée"}</span>
+              <span className="text-[13px]">{member.technical ? "Dispensé de cotisation" : lastPaid ? `Cotisations à jour jusqu'à ${periodLabel(lastPaid.period)}` : "Aucune cotisation réglée"}</span>
             </div>
             {/* SVG produit par la bibliothèque qrcode à partir d'une adresse du site : aucun texte saisi par un utilisateur. */}
             <div role="img" aria-label="Code QR de vérification de la carte" className="size-21 shrink-0 overflow-hidden rounded-[10px] bg-white [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: qr }} />
@@ -114,7 +114,7 @@ export default async function MemberDashboard() {
             <Card className="flex flex-wrap items-center justify-between gap-3 p-[22px]">
               <div>
                 <Eyebrow>Cotisations</Eyebrow>
-                <div className="text-xl font-bold">À jour</div>
+                <div className="text-xl font-bold">{member.technical ? "Dispensé de cotisation" : "À jour"}</div>
               </div>
               <ButtonLink href="/membre/cotisations" variant="outline">Historique</ButtonLink>
             </Card>

@@ -12,7 +12,7 @@ export default async function DirigeantsHome() {
   const v = await requireDirigeant();
   const period = periodOf(new Date());
   const [[members], [minors], [pending], [due], [paid], [late], todos, mandates] = await Promise.all([
-    db.select({ n: count() }).from(schema.members).where(eq(schema.members.status, "ACTIF")),
+    db.select({ n: count() }).from(schema.members).where(and(eq(schema.members.status, "ACTIF"), eq(schema.members.technical, false))),
     db.select({ n: count() }).from(schema.members).where(and(eq(schema.members.status, "ACTIF"), eq(schema.members.category, "ACTIF_MINEUR"))),
     db.select({ n: count() }).from(schema.applications).where(inArray(schema.applications.status, ["SOUMISE", "ENTRETIEN", "VOTE_CA", "AGREEE"])),
     db.select({ s: sum(schema.dues.amount) }).from(schema.dues).where(eq(schema.dues.period, period)),
