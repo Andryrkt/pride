@@ -30,6 +30,8 @@ export const auth = betterAuth({
   },
   session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   trustedOrigins: [env.appUrl, "pride://", "exp://"],
+  // Cookies « __Secure- » seulement en https : le navigateur les refuse en http (essai sur une adresse sslip.io).
+  advanced: { useSecureCookies: env.appUrl.startsWith("https://") },
   plugins: [expo(), nextCookies()],
 });
 
