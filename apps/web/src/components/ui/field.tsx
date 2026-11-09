@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const control = "w-full min-h-12 rounded-xl border-[1.5px] border-[#c3ccc5] bg-white px-3.5 text-[15px] text-ink placeholder:text-[#6b776f] focus:border-brand-600 focus:outline-none";
@@ -34,9 +35,40 @@ function useLiveError(error?: string) {
 
 export function Input({ label, id, error, required, hint, className, onChange, ...props }: FieldProps & React.InputHTMLAttributes<HTMLInputElement>) {
   const [shown, clear] = useLiveError(error);
+  // Mot de passe : bouton pour l'afficher ou le masquer.
+  const password = props.type === "password";
+  const [visible, setVisible] = useState(false);
+  const input = (
+    <input
+      id={id ?? props.name}
+      required={required}
+      aria-invalid={!!shown}
+      aria-describedby={shown ? `${id ?? props.name}-error` : undefined}
+      className={cn(control, shown && "border-flame-600", password && "pr-12 [&::-ms-reveal]:hidden")}
+      onChange={(e) => { clear(); onChange?.(e); }}
+      {...props}
+      type={password && visible ? "text" : props.type}
+    />
+  );
   return (
     <Wrap label={label} name={props.name} id={id ?? props.name} error={shown} required={required} hint={hint} className={className}>
-      <input id={id ?? props.name} required={required} aria-invalid={!!shown} aria-describedby={shown ? `${id ?? props.name}-error` : undefined} className={cn(control, shown && "border-flame-600")} onChange={(e) => { clear(); onChange?.(e); }} {...props} />
+      {password ? (
+        <div className="relative">
+          {input}
+          <button
+            type="button"
+            onClick={() => setVisible(!visible)}
+            aria-label={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            aria-pressed={visible}
+            title={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            className="absolute inset-y-0 right-1 my-auto flex size-10 items-center justify-center rounded-lg text-muted hover:bg-[#e9eee8] hover:text-ink"
+          >
+            {visible ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
+          </button>
+        </div>
+      ) : (
+        input
+      )}
     </Wrap>
   );
 }
