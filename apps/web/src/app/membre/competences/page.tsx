@@ -6,6 +6,7 @@ import { Badge, Card } from "@/components/ui/card";
 import { requireMember } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { askHelpAction, requestCommissionAction } from "../actions";
+import { MyProposals } from "../my-proposals";
 import { OneClick, ProposalForm } from "../network-forms";
 
 const norm = (s: string) => s.toLocaleLowerCase("fr");
@@ -126,6 +127,7 @@ export default async function SkillsPage({ searchParams }: { searchParams: Promi
       <Card className="flex flex-col gap-3.5">
         <h2 className="text-[22px] font-bold">Proposer une idée de projet</h2>
         <ProposalForm kind="PROJET" />
+        <MyProposals memberId={member.id} kind="PROJET" />
       </Card>
     </>
   );

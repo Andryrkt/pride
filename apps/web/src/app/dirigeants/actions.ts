@@ -8,7 +8,7 @@ import { addCommissionMember, CommissionError, designateResponsable, endResponsa
 import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
 import { appointLeader, decideExclusion, endLeaderMandate, giveOnlineAccess, MembershipError, openExclusion, recordDeparture, resendInvitation } from "@/lib/membership";
 import { MessagingError, staffReply } from "@/lib/messaging";
-import { closeOffer, decideCommissionRequest, decideOffer, NetworkError } from "@/lib/network";
+import { closeOffer, decideCommissionRequest, decideOffer, decideProposal, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
 import { slugify, type FormState } from "@/lib/utils";
 
@@ -388,4 +388,18 @@ export async function resendAccessAction(memberId: string, _p: FormState): Promi
     await audit(v.member.id, "membre.acces_relance", memberId, { email });
   } catch (e) { return membershipFail(e); }
   memberPage(memberId, `Lien renvoyé à ${email} (valable 72 heures).`);
+}
+
+export async function decideProposalAction(id: string, decision: "RETENUE" | "NON_RETENUE", _p: FormState, f: FormData): Promise<FormState> {
+  const note = String(f.get("note") ?? "").trim();
+  if (decision === "NON_RETENUE" && !note) return { ok: false, message: "Expliquez au membre pourquoi : le message lui est envoyé.", errors: { note: "Message : obligatoire si la proposition n'est pas retenue" } };
+  try {
+    const v = await requireDirigeant();
+    const p = await decideProposal(id, decision, note, v.member.id);
+    await audit(v.member.id, decision === "RETENUE" ? "proposition.retenue" : "proposition.non_retenue", id, { title: p.title, note });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants/propositions");
+  revalidatePath("/membre/formations");
+  revalidatePath("/membre/competences");
+  redirect(`/dirigeants/propositions?ok=${encodeURIComponent("Réponse enregistrée : le membre est prévenu par e-mail.")}`);
 }

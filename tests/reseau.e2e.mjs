@@ -124,6 +124,18 @@ try {
   await member.getByText("Proposition transmise à la Commission formation et projets").waitFor();
   log("proposition d'atelier transmise");
 
+  // 6. Réponse des dirigeants (Propositions des membres) et suivi par le membre
+  const idea = `Atelier test ${run} (fictif)`;
+  await admin.goto(`${BASE}/dirigeants/propositions`);
+  const box = admin.locator("div.rounded-2xl", { hasText: idea }).last();
+  await box.getByLabel("Message au membre (facultatif)").fill("La commission vous appelle (test).");
+  await box.getByRole("button", { name: "Retenir" }).click();
+  await admin.getByText("Réponse enregistrée").waitFor();
+  await admin.locator("li", { hasText: idea }).getByText("Retenue").waitFor();
+  await member.goto(`${BASE}/membre/formations`);
+  await member.locator("li", { hasText: idea }).getByText("Retenue").waitFor();
+  log("proposition retenue par un dirigeant, état visible du membre");
+
   console.log("\nTous les contrôles sont passés.");
 } catch (e) {
   console.error("✘", e.message);

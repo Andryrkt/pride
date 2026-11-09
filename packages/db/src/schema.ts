@@ -612,6 +612,29 @@ export const offers = pgTable(
   (t) => [index("offers_status_idx").on(t.status)],
 );
 
+export const proposalKind = pgEnum("proposal_kind", ["ATELIER", "PROJET"]);
+export const proposalStatus = pgEnum("proposal_status", ["RECUE", "RETENUE", "NON_RETENUE"]);
+
+/** Proposition d'atelier ou idée de projet d'un membre, suivie dans Dirigeants › Propositions des membres. */
+export const proposals = pgTable(
+  "proposals",
+  {
+    id: id(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+    kind: proposalKind("kind").notNull(),
+    title: text("title").notNull(),
+    details: text("details").notNull(),
+    status: proposalStatus("status").notNull().default("RECUE"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionNote: text("decision_note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("proposals_status_idx").on(t.status), index("proposals_member_idx").on(t.memberId)],
+);
+
 /** « Je suis intéressé(e) » : les coordonnées du membre sont transmises à l'auteur de l'offre. */
 export const offerInterests = pgTable(
   "offer_interests",
@@ -1015,7 +1038,11 @@ export const offersRelations = relations(offers, ({ one, many }) => ({
   interests: many(offerInterests),
 }));
 
-export const offerInterestsRelations = relations(offerInterests, ({ one }) => ({
+export const proposalsRelations = relations(proposals, ({ one }) => ({
+  member: one(members, { fields: [proposals.memberId], references: [members.id] }),
+}));
+
+export const offerInterestsRelations =relations(offerInterests, ({ one }) => ({
   offer: one(offers, { fields: [offerInterests.offerId], references: [offers.id] }),
   member: one(members, { fields: [offerInterests.memberId], references: [members.id] }),
 }));

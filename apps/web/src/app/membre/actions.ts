@@ -178,7 +178,7 @@ export async function proposalAction(kind: "ATELIER" | "PROJET", _prev: FormStat
   return network(
     () => sendProposal(v.member, parsed.data),
     kind === "ATELIER" ? "Merci ! Proposition transmise à la Commission formation et projets." : "Idée transmise à la Commission formation et projets, puis au conseil d'administration pour validation.",
-    [],
+    [kind === "ATELIER" ? "/membre/formations" : "/membre/competences", "/dirigeants/propositions"],
   );
 }
 

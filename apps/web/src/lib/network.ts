@@ -134,12 +134,39 @@ export async function decideCommissionRequest(id: string, accept: boolean, actor
 
 // --- Propositions d'ateliers et de projets ------------------------------------
 
-const PROPOSAL_LABELS = { ATELIER: "Proposition d'atelier", PROJET: "Idée de projet" } as const;
+export const PROPOSAL_LABELS = { ATELIER: "Proposition d'atelier", PROJET: "Idée de projet" } as const;
+export const PROPOSAL_STATUS = {
+  RECUE: ["Reçue, à l'étude", "yellow"],
+  RETENUE: ["Retenue", "green"],
+  NON_RETENUE: ["Non retenue", "gray"],
+} as const;
 
-/** Transmise à la Commission formation et projets (et à l'association, qui la porte au CA pour un projet) ; gardée dans les messages. */
+/** Transmise à la Commission formation et projets (et à l'association, qui la porte au CA pour un projet) ; suivie dans Dirigeants › Propositions. */
 export async function sendProposal(member: Member, input: { kind: "ATELIER" | "PROJET"; title: string; details: string }) {
   const label = PROPOSAL_LABELS[input.kind];
-  const subject = `${label} : ${input.title}`;
-  await db.insert(schema.contactMessages).values({ name: who(member), email: member.email ?? env.mailAssociation, phone: member.phone, subject, message: input.details });
-  await mail([env.mailAssociation, ...(await responsableEmails("formation-projets"))], `[Espace membres] ${subject}`, `${label} de ${who(member)} :\n\n${input.title}\n\n${input.details}\n\n${contact(member)}`);
+  await db.insert(schema.proposals).values({ memberId: member.id, ...input });
+  await mail(
+    [env.mailAssociation, ...(await responsableEmails("formation-projets"))],
+    `[Espace membres] ${label} : ${input.title}`,
+    `${label} de ${who(member)} :\n\n${input.title}\n\n${input.details}\n\n${contact(member)}\n\nÀ suivre dans l'espace dirigeants : ${env.appUrl}/dirigeants/propositions`,
+  );
+}
+
+/** Réponse d'un dirigeant (retenue ou non, avec un message) ; le membre est prévenu par e-mail. Une proposition traitée ne change plus. */
+export async function decideProposal(id: string, decision: "RETENUE" | "NON_RETENUE", note: string, actorId: string) {
+  const [p] = await db
+    .update(schema.proposals)
+    .set({ status: decision, decisionNote: note || null, decidedAt: new Date(), decidedBy: actorId })
+    .where(and(eq(schema.proposals.id, id), eq(schema.proposals.status, "RECUE")))
+    .returning();
+  if (!p) throw new NetworkError("Cette proposition a déjà reçu une réponse.");
+  const author = await db.query.members.findFirst({ where: eq(schema.members.id, p.memberId) });
+  if (author?.email) {
+    await mail(
+      [author.email],
+      `PRIDe : votre proposition « ${p.title} »`,
+      `Bonjour ${author.firstNames},\n\n${decision === "RETENUE" ? "Bonne nouvelle : votre proposition est retenue. La Commission formation et projets vous recontacte pour la suite." : "Votre proposition n'est pas retenue pour le moment. Merci beaucoup pour votre idée !"}${note ? `\n\n${note}` : ""}\n\nL'équipe PRIDe`,
+    );
+  }
+  return p;
 }

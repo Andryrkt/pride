@@ -8,6 +8,7 @@ import { OFFER_STATUS } from "@/lib/network";
 import { requireMember } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { closeOfferAction, interestAction, toggleRegistration } from "../actions";
+import { MyProposals } from "../my-proposals";
 import { OfferForm, OneClick, ProposalForm } from "../network-forms";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -88,6 +89,7 @@ async function Trainings({ memberId }: { memberId: string }) {
           <p>Proposez d'animer un atelier. La Commission formation et projets vous recontacte.</p>
         </div>
         <ProposalForm kind="ATELIER" openLabel="Proposer un atelier" dark />
+        <MyProposals memberId={memberId} kind="ATELIER" dark />
       </Card>
     </div>
   );

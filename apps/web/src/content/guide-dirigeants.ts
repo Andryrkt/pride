@@ -9,10 +9,10 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
     steps: [
       { text: "Connectez-vous comme membre, puis cliquez sur « Espace dirigeants » dans le menu.", image: "espace-1.png" },
       { text: "Le tableau de bord montre les membres actifs, les candidatures en cours, les cotisations du mois et les membres en retard." },
-      { text: "Les pastilles rouges du menu signalent ce qui attend une action : candidatures, demandes de commission, aides de solidarité, offres, messages." },
+      { text: "Les pastilles rouges du menu signalent ce qui attend une action : candidatures, demandes de commission, aides de solidarité, offres, propositions, messages." },
       { text: "Agrément des adhésions, registre (démission, exclusion), AG et consultations : conseil d'administration, Secrétaire générale et administrateur." },
       { text: "Commissions (responsables, composition, demandes d'entrée) : conseil d'administration, Coordonnateur et administrateur." },
-      { text: "Aides de solidarité : conseil d'administration et bureau exécutif. Offres des membres, messagerie, publications : tous les dirigeants." },
+      { text: "Aides de solidarité : conseil d'administration et bureau exécutif. Offres et propositions des membres, messagerie, publications : tous les dirigeants." },
     ],
     tips: [
       "Chaque action d'un dirigeant est enregistrée dans le journal de l'application (qui, quoi, quand).",
@@ -149,17 +149,19 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
   },
   {
     slug: "demandes-membres",
-    title: "Traiter les demandes : solidarité et offres",
+    title: "Traiter les demandes : solidarité, offres et propositions",
     summary: "Les demandes des membres arrivent par e-mail et dans l'espace dirigeants, avec une pastille dans le menu.",
     steps: [
       { text: "« Solidarité » : lisez la demande et ouvrez la pièce jointe. « Accorder » (message facultatif) ou « Refuser » (motif obligatoire, envoyé au membre).", image: "solidarite-1.png" },
       { text: "Une aide accordée reste « à verser » : le versement passe par une pièce de dépense signée du Trésorier et visée par le CA (statuts, art. 22)." },
       { text: "« Offres des membres » : vérifiez chaque offre de stage, d'emploi ou de bénévolat avant de la publier : pas d'arnaque, pas de frais demandés aux candidats. « Publier » ou « Refuser » avec un motif." },
       { text: "Une offre pourvue peut être clôturée par son auteur ou par un dirigeant (« Clôturer »)." },
+      { text: "« Propositions des membres » : ateliers que des membres proposent d'animer et idées de projet. Après étude par la Commission formation et projets (et le CA pour un projet), « Retenir » (message facultatif) ou « Ne pas retenir » (explication obligatoire). Le membre reçoit un e-mail et voit la réponse sous le formulaire." },
     ],
     links: [
       { label: "Solidarité", href: "/dirigeants/solidarite" },
       { label: "Offres des membres", href: "/dirigeants/offres" },
+      { label: "Propositions des membres", href: "/dirigeants/propositions" },
     ],
   },
   {
