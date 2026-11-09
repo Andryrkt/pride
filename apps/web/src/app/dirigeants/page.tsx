@@ -1,11 +1,12 @@
 import { and, asc, count, db, eq, gte, inArray, isNull, or, schema, sql, sum } from "@pride/db";
 import { formatAriary, periodOf, ROLE_LABELS, type MandateRole } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { env } from "@/lib/env";
 import { requireDirigeant } from "@/lib/session";
 import { DUTIES, leaderTodos } from "@/lib/todos";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 /** Tableau de bord des dirigeants : chiffres clés, tâches selon le rôle, responsabilités et mandats (maquette « Tableau de bord »). */
 export default async function DirigeantsHome() {
@@ -74,6 +75,20 @@ export default async function DirigeantsHome() {
               <ul className="list-disc pl-5 text-[15px]">{DUTIES[r as MandateRole]!.duties.map((d) => <li key={d}>{d}</li>)}</ul>
             </Card>
           ))}
+          {v.isAdmin && (
+            <Card className="flex flex-col gap-3">
+              <h2 className="text-xl font-bold">Code QR du site</h2>
+              <p className="text-sm text-muted">Mène à {new URL(env.appUrl).host}. À mettre sur les affiches, flyers et publications.</p>
+              {/* eslint-disable-next-line @next/next/no-img-element -- image servie par l'API réservée à l'administrateur */}
+              <img src="/api/qr-site?apercu=1" alt={`Code QR vers ${new URL(env.appUrl).host}`} width={160} height={160} className="self-center rounded-xl border border-line" />
+              <div className="grid grid-cols-3 gap-2">
+                <a href="/api/qr-site?format=png" download className={cn(buttonVariants({ size: "sm" }))}>PNG vert</a>
+                <a href="/api/qr-site?format=noir" download className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>PNG noir</a>
+                <a href="/api/qr-site?format=svg" download className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>SVG</a>
+              </div>
+              <p className="text-[13px] text-muted">PNG : 1200 × 1200 px. SVG : net à toutes les tailles (affiches, imprimeur). Au moins 2 × 2 cm sur papier, avec la bordure blanche.</p>
+            </Card>
+          )}
           <Card className="flex flex-col gap-2">
             <h2 className="text-xl font-bold">Mandats</h2>
             <ul className="divide-y divide-line text-[15px]">
