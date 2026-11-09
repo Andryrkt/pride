@@ -44,7 +44,7 @@ export function useApi<T>(path: string) {
 }
 
 export type Me = {
-  member: { id: string; number: string; lastName: string; firstNames: string; categoryLabel: string; joinedAt: string; phone: string | null; skills: string[] };
+  member: { id: string; number: string; lastName: string; firstNames: string; categoryLabel: string; joinedAt: string; phone: string | null; skills: string[]; hasPhoto: boolean };
   roles: string[];
   dues: { unpaidCount: number; unpaidTotal: number };
 };

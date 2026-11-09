@@ -24,6 +24,8 @@ RUN pnpm --filter @pride/web build \
 FROM node:22-bookworm-slim AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 TZ=Indian/Antananarivo
 WORKDIR /app
+# Police pour le texte de la carte de membre en image (sharp convertit un SVG : sans police, le texte serait illisible).
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system pride && useradd --system --gid pride pride \
  && mkdir -p /app/uploads && chown pride:pride /app/uploads
 COPY --from=build --chown=pride:pride /app/apps/web/.next/standalone ./

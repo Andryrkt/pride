@@ -49,15 +49,23 @@ try {
   await page.getByRole("img", { name: "Code QR de vérification de la carte" }).locator("svg").waitFor();
   log("photo et code QR affichés sur la carte");
 
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Télécharger ma carte" }).click()]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "PDF" }).click()]);
   const pdf = await PDFDocument.load(await readFile(await download.path()));
   const { width, height } = pdf.getPage(0).getSize();
   if (pdf.getPageCount() !== 1 || Math.abs(width - 153.1) > 1 || Math.abs(height - 242.6) > 1) fail(`PDF inattendu : ${pdf.getPageCount()} page(s), ${width}×${height} pt`);
   if (!/^carte-pride-PRIDE\d{10}\.pdf$/.test(download.suggestedFilename())) fail(`nom de fichier inattendu : ${download.suggestedFilename()}`);
   log("PDF en portrait téléchargé :", download.suggestedFilename(), "· 54 × 85,6 mm");
 
+  // Version image, générée par le serveur : PNG portrait, mêmes proportions que la carte
+  const [image] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Image" }).click()]);
+  const png = await readFile(await image.path());
+  if (png.subarray(1, 4).toString() !== "PNG" || png.readUInt32BE(16) !== 648 || png.readUInt32BE(20) !== 1027) fail("image PNG inattendue");
+  if (!/^carte-pride-PRIDE\d{10}\.png$/.test(image.suggestedFilename())) fail(`nom de fichier inattendu : ${image.suggestedFilename()}`);
+  log("image PNG téléchargée :", image.suggestedFilename(), "· 648 × 1027 px");
+
   // L'adresse du QR : /verifier/<identifiant du membre>
   const visitor = await (await browser.newContext()).newPage();
+  visitor.setDefaultTimeout(120_000); // comme les pages connectées : le serveur de développement peut être lent
   await visitor.goto(`${BASE}/verifier/${me.member.id}`);
   await visitor.getByText("Carte valide").waitFor();
   await visitor.getByText(me.member.number).waitFor();

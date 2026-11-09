@@ -20,6 +20,8 @@ export async function GET(req: Request) {
       joinedAt: m.joinedAt,
       phone: m.phone,
       skills: m.skills,
+      /** La carte (PDF ou image, /api/carte) demande une photo, ajoutée dans « Mon profil » sur le site. */
+      hasPhoto: !!m.photoKey,
     },
     roles: v.roles,
     dues: { unpaidCount: unpaid.length, unpaidTotal: unpaid.reduce((s, d) => s + d.amount, 0) },

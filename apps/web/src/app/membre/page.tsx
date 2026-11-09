@@ -4,7 +4,7 @@ import Link from "next/link";
 import { asc, desc, db, eq, gte, and, inArray, isNull, schema } from "@pride/db";
 import { canVoteAtAG, formatAriary, localDay, OFFER_TYPES, periodLabel, SOLIDARITE_CONCERNE, SOLIDARITE_EVENEMENTS, TARIFS, type MemberCategory } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
-import { ButtonLink, buttonVariants } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Badge, Card, Eyebrow } from "@/components/ui/card";
 import { KIND_LABELS } from "@/lib/assemblies";
 import { cardQrSvg } from "@/lib/card";
@@ -12,7 +12,8 @@ import { openConsultations } from "@/lib/consultations";
 import { dueLabel, ensureDues, listDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { SOLIDARITY_STATUS } from "@/lib/solidarity";
-import { cn, formatDate, formatDateTime, newPostsSince } from "@/lib/utils";
+import { formatDate, formatDateTime, newPostsSince } from "@/lib/utils";
+import { CardDownload } from "./card-download";
 import { SolidarityCard } from "./solidarity-card";
 
 const monthYear = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
@@ -87,10 +88,7 @@ export default async function MemberDashboard() {
           </div>
           {member.status === "ACTIF" &&
             (member.photoKey ? (
-              // Simple lien (pas next/link) : c'est un fichier à télécharger, pas une page.
-              <a href="/api/carte" download className={cn(buttonVariants(), "w-full")}>
-                Télécharger ma carte
-              </a>
+              <CardDownload />
             ) : (
               <p className="text-center text-sm text-muted">
                 Pour télécharger votre carte, <Link href="/membre/profil" className="font-semibold text-brand-600 underline">ajoutez d'abord votre photo</Link>.

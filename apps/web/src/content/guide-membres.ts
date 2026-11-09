@@ -49,7 +49,7 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     steps: [
       { text: "Dans « Mon profil », bloc « Photo de ma carte de membre », cliquez sur « Choisir un fichier » et prenez une photo d'identité récente, de face (JPG, PNG ou WEBP, 5 Mo maximum).", image: "carte-1.png" },
       { text: "Cliquez sur « Enregistrer la photo ». Elle est recadrée automatiquement au format d'une photo d'identité." },
-      { text: "Revenez au « Tableau de bord » : votre carte affiche la photo et un code QR. Cliquez sur « Télécharger ma carte ».", image: "carte-2.png" },
+      { text: "Revenez au « Tableau de bord » : votre carte affiche la photo et un code QR. Sous « Télécharger ma carte », choisissez « PDF » pour l'imprimer, ou « Image » pour la garder sur votre téléphone ou la partager.", image: "carte-2.png" },
       { text: "Imprimez le PDF à taille réelle (100 %, sans « ajuster à la page ») : la carte mesure 54 × 85,6 mm." },
     ],
     tips: [

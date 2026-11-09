@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
+import sharp from "sharp";
 import { TARIFS, type MemberCategory } from "@pride/shared";
 import { env } from "./env";
 import { memberPhoto } from "./photo";
@@ -68,4 +69,53 @@ export async function cardPdf(m: Member & { photoKey: string }) {
   centered(page, "Validité : scanner le code", mm(1.6), regular, 4.5, light, inner);
 
   return pdf.save();
+}
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/**
+ * Carte en image PNG (648 × 1027 px, environ 300 points par pouce) : même mise en page que le PDF, dessinée en SVG
+ * puis convertie par sharp. Le texte utilise la police DejaVu, installée dans l'image Docker (apps/web/Dockerfile).
+ */
+export async function cardPng(m: Member & { photoKey: string }) {
+  const S = 12; // pixels par millimètre
+  const PT = 25.4 / 72; // un point typographique en millimètres
+  const [W, H] = [54 * S, 85.6 * S];
+  // Largeurs mesurées avec les métriques Helvetica de pdf-lib, majorées de 12 % (DejaVu est plus large) pour réduire un nom trop long.
+  const metrics = await PDFDocument.create();
+  const fonts = { bold: await metrics.embedFont(StandardFonts.HelveticaBold), regular: await metrics.embedFont(StandardFonts.Helvetica) };
+  const text = (value: string, topMm: number, pt: number, bold: boolean, color: string, anchor: "middle" | "end" = "middle") => {
+    if (anchor === "middle") while (pt > 5 && fonts[bold ? "bold" : "regular"].widthOfTextAtSize(value, pt) * 1.12 > (46 / PT)) pt -= 0.25;
+    const x = anchor === "middle" ? W / 2 : W - 4 * S;
+    return `<text x="${x}" y="${topMm * S}" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-weight="${bold ? "bold" : "normal"}" font-size="${(pt * PT * S).toFixed(1)}" fill="${color}" text-anchor="${anchor}">${esc(value)}</text>`;
+  };
+  const [logo, photo, qr] = await Promise.all([
+    readFile(path.join(process.cwd(), "public/images/logo-blanc.png")),
+    memberPhoto(m.photoKey),
+    QRCode.toBuffer(verifyUrl(m.id), { margin: 1, width: 300, errorCorrectionLevel: "M" }),
+  ]);
+  const logoMeta = await sharp(logo).metadata();
+  const logoH = 11 * S;
+  const logoW = ((logoMeta.width ?? 1) / (logoMeta.height ?? 1)) * logoH;
+  const [pw, ph, frame] = [24 * S, 32 * S, 1.5 * PT * S];
+  const px = (W - pw) / 2;
+  const qrSize = 12.5 * S;
+  const img = (data: Buffer, mime: string, x: number, y: number, w: number, h: number) =>
+    `<image href="data:${mime};base64,${data.toString("base64")}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
+  const LIGHT = "#ddefe4";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="#0b3f2a"/>
+  ${img(logo, "image/png", 4 * S, 4 * S, logoW, logoH)}
+  ${text("CARTE", 8, 6.5, true, LIGHT, "end")}
+  ${text("DE MEMBRE", 11.2, 6.5, true, LIGHT, "end")}
+  <rect x="${px - frame}" y="${18 * S - frame}" width="${pw + 2 * frame}" height="${ph + 2 * frame}" fill="#ffffff"/>
+  ${img(photo, "image/jpeg", px, 18 * S, pw, ph)}
+  ${text(m.lastName, 55, 10, true, "#ffffff")}
+  ${text(m.firstNames, 59, 8.5, true, "#ffffff")}
+  ${text(`N° ${m.number} · ${TARIFS[m.category as MemberCategory].label}`, 63.3, 6.5, false, LIGHT)}
+  ${text(`Membre depuis ${monthYear.format(new Date(m.joinedAt))}`, 66.4, 6.5, false, LIGHT)}
+  ${img(qr, "image/png", (W - qrSize) / 2, (85.6 - 3.4 - 12.5) * S, qrSize, qrSize)}
+  ${text("Validité : scanner le code", 84, 4.5, false, LIGHT)}
+</svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }

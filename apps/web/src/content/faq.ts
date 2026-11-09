@@ -32,7 +32,7 @@ export const FAQ: { theme: string; items: FaqItem[] }[] = [
   {
     theme: "Carte de membre",
     items: [
-      { q: "Comment obtenir ma carte ?", a: "Ajoutez votre photo dans « Mon profil », puis cliquez sur « Télécharger ma carte » sur le tableau de bord. Imprimez le PDF à taille réelle (100 %).", link: { label: "Ma carte de membre", href: "/aide/membres/carte" } },
+      { q: "Comment obtenir ma carte ?", a: "Ajoutez votre photo dans « Mon profil », puis, sur le tableau de bord, choisissez « PDF » (à imprimer à taille réelle, 100 %) ou « Image » (à garder sur votre téléphone).", link: { label: "Ma carte de membre", href: "/aide/membres/carte" } },
       { q: "À quoi sert le code QR ?", a: "En le scannant avec un téléphone, un responsable vérifie que la carte est valide et que son titulaire est bien membre actif." },
       { q: "Que veut dire mon numéro de membre ?", a: "PRIDE, puis l'année et le mois de votre entrée, puis votre rang d'arrivée dans le mois. Exemple : PRIDE2026100001 est le premier membre entré en octobre 2026." },
     ],

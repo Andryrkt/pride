@@ -49,6 +49,9 @@ importers:
       expo-crypto:
         specifier: 14.1.5
         version: 14.1.5(expo@53.0.27)
+      expo-file-system:
+        specifier: 18.1.11
+        version: 18.1.11(expo@53.0.27)(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))
       expo-linking:
         specifier: 7.1.7
         version: 7.1.7(expo@53.0.27)(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -58,6 +61,9 @@ importers:
       expo-secure-store:
         specifier: 14.2.4
         version: 14.2.4(expo@53.0.27)
+      expo-sharing:
+        specifier: 13.1.5
+        version: 13.1.5(expo@53.0.27)
       expo-status-bar:
         specifier: 2.2.3
         version: 2.2.3(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -3731,6 +3737,11 @@ packages:
   expo-server@57.0.3:
     resolution: {integrity: sha512-aK+LdKzauHSGmsOStZtyxdzv0zWssCkxTw3m4QuOhfDSJsZaMRTd9O41d8ixU/QfELTbaJ0oRNcF7JFV/7O9YQ==}
     engines: {node: '>=20.16.0'}
+
+  expo-sharing@13.1.5:
+    resolution: {integrity: sha512-X/5sAEiWXL2kdoGE3NO5KmbfcmaCWuWVZXHu8OQef7Yig4ZgHFkGD11HKJ5KqDrDg+SRZe4ISd6MxE7vGUgm4w==}
+    peerDependencies:
+      expo: '*'
 
   expo-status-bar@2.2.3:
     resolution: {integrity: sha512-+c8R3AESBoduunxTJ8353SqKAKpxL6DvcD8VKBuh81zzJyUUbfB4CVjr1GufSJEKsMzNPXZU+HJwXx7Xh7lx8Q==}
@@ -10894,6 +10905,10 @@ snapshots:
       expo: 57.0.28(@babel/core@7.29.7)(@expo/dom-webview@57.0.1)(expo-router@5.1.11)(react-dom@19.0.0(react@19.0.0))(react-native@0.87.1(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)(typescript@5.8.3)
 
   expo-server@57.0.3: {}
+
+  expo-sharing@13.1.5(expo@53.0.27):
+    dependencies:
+      expo: 53.0.27(@babel/core@7.28.4)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@5.0.5(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
 
   expo-status-bar@2.2.3(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
     dependencies:
