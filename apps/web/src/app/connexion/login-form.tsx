@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { authClient } from "@/lib/auth-client";
@@ -10,6 +11,10 @@ export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Après la vérification du mot de passe, l'espace membre peut mettre quelques secondes à s'afficher :
+  // la transition reste « en cours » jusqu'à ce que la nouvelle page soit prête.
+  const [opening, startOpening] = useTransition();
+  const busy = pending || opening;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -17,13 +22,15 @@ export function LoginForm({ next }: { next: string }) {
     setError(null);
     const f = new FormData(e.currentTarget);
     const { error } = await authClient.signIn.email({ email: String(f.get("email")), password: String(f.get("password")), rememberMe: f.get("remember") === "on" });
-    setPending(false);
     if (error) {
+      setPending(false);
       setError(error.status === 429 ? "Trop de tentatives. Réessayez dans quelques minutes." : "E-mail ou mot de passe incorrect.");
       return;
     }
-    router.push(next);
-    router.refresh();
+    startOpening(() => {
+      router.push(next);
+      router.refresh();
+    });
   }
 
   return (
@@ -35,7 +42,17 @@ export function LoginForm({ next }: { next: string }) {
         <label className="flex items-center gap-2"><input type="checkbox" name="remember" defaultChecked className="size-4" /> Rester connecté</label>
         <Link href="/mot-de-passe-oublie" className="font-semibold text-brand-600">Mot de passe oublié ?</Link>
       </div>
-      <Button type="submit" disabled={pending}>{pending ? "Connexion…" : "Se connecter"}</Button>
+      <Button type="submit" disabled={busy} aria-busy={busy}>
+        {busy ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="size-5 animate-spin" aria-hidden />
+            {opening ? "Ouverture de votre espace…" : "Connexion…"}
+          </span>
+        ) : (
+          "Se connecter"
+        )}
+      </Button>
+      {opening && <p role="status" className="text-center text-sm text-muted">Connexion réussie. Votre espace se prépare, cela peut prendre quelques secondes.</p>}
       <p className="text-sm text-muted">Pas encore membre ? <Link href="/adhesion" className="font-semibold text-brand-600">Déposer une candidature</Link></p>
     </form>
   );
