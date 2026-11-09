@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { BackToTop } from "@/components/site/back-to-top";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,7 +13,10 @@ export const viewport: Viewport = { themeColor: "#146b47", width: "device-width"
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        {children}
+        <BackToTop />
+      </body>
     </html>
   );
 }
