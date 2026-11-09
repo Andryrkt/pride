@@ -7,7 +7,7 @@ import {
   Target, UserCheck, Users, Vote, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEM, NAV_LABEL } from "./nav-style";
+import { NAV_LABEL } from "./nav-style";
 
 /** Icône de chaque entrée du menu, par adresse (une adresse sans icône s'affiche sans). */
 const ICONS: Record<string, LucideIcon> = {
@@ -52,7 +52,7 @@ export function NavLink({ href, label, badge, also }: { href: string; label: str
       href={href}
       aria-current={active ? "page" : undefined}
       title={label}
-      className={cn("flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium", NAV_ITEM, active ? "bg-brand-600 text-white" : "text-[#2b3832] hover:bg-[#e9eee8]")}
+      className={cn("flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 font-medium", active ? "bg-brand-600 text-white" : "text-[#2b3832] hover:bg-[#e9eee8]")}
     >
       {Icon && <Icon className="size-5 shrink-0" aria-hidden />}
       <span className={NAV_LABEL}>{label}</span>
