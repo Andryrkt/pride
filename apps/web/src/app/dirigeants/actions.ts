@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, db, eq, gte, isNull, or, schema } from "@pride/db";
+import { and, db, eq, gte, isNull, ne, or, schema } from "@pride/db";
 import { agrementSchema, ROLE_LABELS, type MandateRole } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
@@ -402,4 +402,22 @@ export async function decideProposalAction(id: string, decision: "RETENUE" | "NO
   revalidatePath("/membre/formations");
   revalidatePath("/membre/competences");
   redirect(`/dirigeants/propositions?ok=${encodeURIComponent("Réponse enregistrée : le membre est prévenu par e-mail.")}`);
+}
+
+/** Page Connexions (administrateur) : fermer une session, ou toutes celles d'un utilisateur. Sa propre session courante se ferme par « Déconnexion ». */
+export async function revokeSessionsAction(target: { sessionId: string } | { userId: string }, _p: FormState): Promise<FormState> {
+  let n = 0;
+  try {
+    const v = await requireDirigeant();
+    if (!v.isAdmin) throw new Error("Page réservée à l'administrateur.");
+    const where = "sessionId" in target
+      ? and(eq(schema.session.id, target.sessionId), ne(schema.session.id, v.sessionId))
+      : and(eq(schema.session.userId, target.userId), ne(schema.session.id, v.sessionId));
+    const gone = await db.delete(schema.session).where(where).returning({ userId: schema.session.userId });
+    if (!gone.length) throw new Error("Session déjà fermée (ou c'est la vôtre : utilisez « Déconnexion »).");
+    n = gone.length;
+    await audit(v.member.id, "session.fermeture", gone[0]!.userId, { sessions: n });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants/connexions");
+  redirect(`/dirigeants/connexions?ok=${encodeURIComponent(n > 1 ? `${n} sessions fermées : l'utilisateur est déconnecté partout.` : "Session fermée : l'utilisateur est déconnecté.")}`);
 }

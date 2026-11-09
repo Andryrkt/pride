@@ -35,6 +35,7 @@ export default async function DirigeantsLayout({ children }: { children: React.R
         { href: "/dirigeants/ag", label: "Assemblées générales" },
         { href: "/dirigeants/documents", label: "Documents officiels" },
         { href: "/dirigeants/actualites", label: "Actualités et événements" },
+        ...(v.isAdmin ? [{ href: "/dirigeants/connexions", label: "Connexions" }] : []),
       ]}
       extra={[{ href: "/finances", label: "Finances" }, { href: "/membre", label: "Mon espace membre" }]}
     >

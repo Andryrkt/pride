@@ -89,6 +89,22 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
     links: [{ label: "Registre des membres", href: "/dirigeants/membres" }],
   },
   {
+    slug: "connexions",
+    title: "Suivre les connexions et déconnecter un utilisateur",
+    summary: "L'administrateur voit qui utilise l'espace membres en ce moment, et peut fermer une session à distance.",
+    steps: [
+      { text: "Ouvrez « Connexions » dans le menu (visible de l'administrateur seul). La vue « En ligne » montre les personnes actives depuis moins de 15 minutes : nom, e-mail, appareil, heure de connexion et dernière activité." },
+      { text: "« Toutes les sessions ouvertes » montre aussi les sessions inactives qui ne sont pas encore expirées (une session dure 30 jours)." },
+      { text: "« Déconnecter » ferme une session : à sa prochaine action, la personne revient à la page de connexion. « Partout » ferme toutes ses sessions (ordinateur, téléphone…)." },
+    ],
+    tips: [
+      "Un téléphone perdu ou un ordinateur partagé resté connecté : « Partout », puis faites changer le mot de passe.",
+      "Votre propre session n'a pas de bouton : utilisez « Déconnexion » dans le menu de votre nom.",
+      "La dernière activité est notée toutes les 5 minutes environ. Chaque déconnexion est tracée.",
+    ],
+    links: [{ label: "Connexions", href: "/dirigeants/connexions" }],
+  },
+  {
     slug: "assemblee-generale",
     title: "Préparer et tenir une assemblée générale",
     summary: "Statuts, art. 18 : convocation 15 jours avant, quorum de la majorité absolue des membres ayant droit de vote, pas de procuration.",

@@ -8,9 +8,16 @@ import { auth } from "./auth";
 
 export type Viewer = Awaited<ReturnType<typeof loadViewer>>;
 
+/** Précision de la « dernière activité » d'une session. */
+export const ACTIVITY_STEP = 5 * 60_000;
+
 async function loadViewer(reqHeaders: Headers) {
   const session = await auth.api.getSession({ headers: reqHeaders });
   if (!session) return null;
+  // Dernière activité (page Connexions de l'administrateur) : au plus une écriture toutes les 5 minutes par session.
+  if (Date.now() - new Date(session.session.updatedAt).getTime() > ACTIVITY_STEP) {
+    await db.update(schema.session).set({ updatedAt: new Date() }).where(eq(schema.session.id, session.session.id)).catch(() => {});
+  }
   const member = await db.query.members.findFirst({ where: eq(schema.members.userId, session.user.id) });
   const today = new Date();
   const mandates = member
@@ -26,6 +33,7 @@ async function loadViewer(reqHeaders: Headers) {
   if (actingTreasurer) roles.push("TRESORIER");
   return {
     user: session.user,
+    sessionId: session.session.id,
     member,
     roles,
     actingTreasurer,
