@@ -1,6 +1,6 @@
 import "server-only";
 import { hashPassword } from "better-auth/crypto";
-import { and, db, eq, nextCounter, schema } from "@pride/db";
+import { and, db, eq, nextCounter, schema, type Tx } from "@pride/db";
 import {
   ACCEPTED_UPLOAD_TYPES,
   agrementAdopted,
@@ -138,6 +138,17 @@ export async function recordDecision(applicationId: string, d: { meetingDate: Da
   return adopted;
 }
 
+/** Compte de connexion avec un mot de passe aléatoire : le membre choisit le sien via le lien reçu par e-mail (`sendInvitation`). */
+export async function createCredentialUser(tx: Tx, name: string, email: string) {
+  const userId = crypto.randomUUID();
+  await tx.insert(schema.user).values({ id: userId, name, email });
+  await tx.insert(schema.account).values({ id: crypto.randomUUID(), accountId: userId, providerId: "credential", userId, password: await hashPassword(crypto.randomUUID() + crypto.randomUUID()) });
+  return userId;
+}
+
+/** E-mail « choisissez votre mot de passe » (lien valable 72 heures). */
+export const sendInvitation = (email: string) => auth.api.requestPasswordReset({ body: { email, redirectTo: `${env.appUrl}/nouveau-mot-de-passe` } });
+
 /**
  * Crée la fiche membre après l'agrément : numéro, droit d'entrée et première cotisation à payer,
  * et compte de connexion si le candidat a un e-mail (il reçoit un lien pour choisir son mot de passe).
@@ -157,20 +168,7 @@ export async function createMemberFromApplication(applicationId: string, actorId
     let userId: string | null = null;
     if (a.email) {
       const existing = await tx.query.user.findFirst({ where: eq(schema.user.email, a.email) });
-      if (existing) {
-        userId = existing.id;
-      } else {
-        userId = crypto.randomUUID();
-        await tx.insert(schema.user).values({ id: userId, name: `${a.firstNames} ${a.lastName}`, email: a.email });
-        // Mot de passe aléatoire : le membre choisit le sien via le lien reçu par e-mail.
-        await tx.insert(schema.account).values({
-          id: crypto.randomUUID(),
-          accountId: userId,
-          providerId: "credential",
-          userId,
-          password: await hashPassword(crypto.randomUUID() + crypto.randomUUID()),
-        });
-      }
+      userId = existing ? existing.id : await createCredentialUser(tx, `${a.firstNames} ${a.lastName}`, a.email);
     }
     const [m] = await tx
       .insert(schema.members)
@@ -201,9 +199,7 @@ export async function createMemberFromApplication(applicationId: string, actorId
   });
 
   if (member.email) {
-    await auth.api
-      .requestPasswordReset({ body: { email: member.email, redirectTo: `${env.appUrl}/nouveau-mot-de-passe` } })
-      .catch((e) => console.error("Invitation non envoyée", e));
+    await sendInvitation(member.email).catch((e) => console.error("Invitation non envoyée", e));
   }
   return member;
 }

@@ -54,6 +54,23 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
     links: [{ label: "Registre des membres", href: "/dirigeants/membres" }],
   },
   {
+    slug: "acces-en-ligne",
+    title: "Donner un accès en ligne à un membre déjà inscrit",
+    summary: "Pour une fiche sans compte : les dirigeants enregistrés au démarrage, ou un membre agréé qui n'avait pas d'e-mail.",
+    steps: [
+      { text: "Ouvrez « Registre des membres », puis la fiche du membre." },
+      { text: "Dans « Accès en ligne » (administrateur et Secrétaire générale), indiquez l'adresse e-mail du membre, puis « Créer l'accès et envoyer le lien »." },
+      { text: "Le membre reçoit l'e-mail « PRIDe : choisissez votre mot de passe ». Il ouvre le lien (valable 72 heures), choisit son mot de passe, puis se connecte avec son e-mail." },
+      { text: "Lien expiré ou e-mail introuvable ? Sur la même fiche, cliquez sur « Renvoyer le lien »." },
+    ],
+    tips: [
+      "Une adresse ne sert qu'à un seul compte.",
+      "Ses droits dépendent de ses mandats : un membre du CA ou du bureau voit l'« Espace dirigeants » dès sa première connexion.",
+      "Demandez-lui de regarder aussi dans les courriers indésirables (spams).",
+    ],
+    links: [{ label: "Registre des membres", href: "/dirigeants/membres" }],
+  },
+  {
     slug: "roles",
     title: "Attribuer un rôle de dirigeant, d'administrateur ou de comptable",
     summary: "L'administrateur enregistre dans l'application les rôles décidés par l'AG (conseil d'administration) et par le CA (bureau exécutif).",

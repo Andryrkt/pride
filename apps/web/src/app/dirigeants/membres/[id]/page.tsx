@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { MEMBER_STATUS } from "@/lib/labels";
 import { canDecideApplications, requireDirigeant } from "@/lib/session";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { appointLeaderAction, decideExclusionAction, departureAction, endLeaderAction, openExclusionAction, setComptableAction } from "../../actions";
+import { appointLeaderAction, decideExclusionAction, departureAction, endLeaderAction, giveAccessAction, openExclusionAction, resendAccessAction, setComptableAction } from "../../actions";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -20,7 +20,7 @@ export default async function MemberRecordPage({ params, searchParams }: { param
   const v = await requireDirigeant();
   const m = await db.query.members.findFirst({
     where: eq(schema.members.id, id),
-    with: { mandates: { orderBy: desc(schema.mandates.startsAt), with: { commission: true } } },
+    with: { mandates: { orderBy: desc(schema.mandates.startsAt), with: { commission: true } }, user: true },
   });
   if (!m) notFound();
   const procedures = await db.query.exclusionProcedures.findMany({ where: eq(schema.exclusionProcedures.memberId, id), orderBy: asc(schema.exclusionProcedures.createdAt) });
@@ -35,6 +35,7 @@ export default async function MemberRecordPage({ params, searchParams }: { param
   const holders = v.isAdmin
     ? await db.query.mandates.findMany({ where: and(inArray(schema.mandates.role, POSTES_UNIQUES), lte(schema.mandates.startsAt, day), or(isNull(schema.mandates.endsAt), gte(schema.mandates.endsAt, day))), with: { member: true } })
     : [];
+  const canGiveAccess = (v.isAdmin || v.roles.includes("SECRETAIRE_GENERALE")) && m.status === "ACTIF" && !m.technical;
   const isComptable = m.mandates.some((x) => x.role === "COMPTABLE" && (!x.endsAt || new Date(x.endsAt) >= new Date(new Date().toISOString().slice(0, 10))));
 
   return (
@@ -72,6 +73,28 @@ export default async function MemberRecordPage({ params, searchParams }: { param
           </ul>
         </Card>
       </div>
+
+      {canGiveAccess && (
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">Accès en ligne</h2>
+          {m.user ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[15px]">Ce membre se connecte avec <strong>{m.user.email}</strong>. Lien expiré ou mot de passe oublié ? Renvoyez-lui le lien pour en choisir un.</p>
+              <ActionForm action={resendAccessAction.bind(null, m.id)}>
+                <SubmitButton variant="outline" size="sm">Renvoyer le lien</SubmitButton>
+              </ActionForm>
+            </div>
+          ) : (
+            <>
+              <p className="text-[15px] text-muted">Ce membre n'a pas encore de compte. Indiquez son adresse e-mail : il recevra un lien pour choisir son mot de passe (valable 72 heures), puis se connectera avec cette adresse.</p>
+              <ActionForm action={giveAccessAction.bind(null, m.id)} className="flex flex-wrap items-end gap-3">
+                <Input label="Adresse e-mail" name="email" id="access-email" type="email" required defaultValue={m.email ?? ""} className="flex-[1_1_280px]" />
+                <SubmitButton>Créer l'accès et envoyer le lien</SubmitButton>
+              </ActionForm>
+            </>
+          )}
+        </Card>
+      )}
 
       {procedures.length > 0 && (
         <Card className="flex flex-col gap-3">

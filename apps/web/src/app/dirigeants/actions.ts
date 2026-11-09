@@ -6,7 +6,7 @@ import { agrementSchema, ROLE_LABELS, type MandateRole } from "@pride/shared";
 import { ApplicationError, createMemberFromApplication, recordDecision, scheduleInterview, sendToVote } from "@/lib/applications";
 import { addCommissionMember, CommissionError, designateResponsable, endResponsableMandate, removeCommissionMember } from "@/lib/commissions";
 import { audit, canDecideApplications, canHandleSolidarity, canManageCommissions, requireDirigeant } from "@/lib/session";
-import { appointLeader, decideExclusion, endLeaderMandate, MembershipError, openExclusion, recordDeparture } from "@/lib/membership";
+import { appointLeader, decideExclusion, endLeaderMandate, giveOnlineAccess, MembershipError, openExclusion, recordDeparture, resendInvitation } from "@/lib/membership";
 import { MessagingError, staffReply } from "@/lib/messaging";
 import { closeOffer, decideCommissionRequest, decideOffer, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
@@ -358,4 +358,34 @@ export async function endLeaderAction(memberId: string, mandateId: string, _p: F
     await audit(v.member.id, "dirigeant.fin", memberId, { role, mandateId });
   } catch (e) { return membershipFail(e); }
   memberPage(memberId, `Rôle retiré : ${ROLE_LABELS[role as MandateRole]}.`);
+}
+
+// ---------------------------------------------------------------------------
+// Accès en ligne d'une fiche sans compte : administrateur et Secrétaire générale
+// ---------------------------------------------------------------------------
+
+async function accessGuard() {
+  const v = await requireDirigeant();
+  if (!v.isAdmin && !v.roles.includes("SECRETAIRE_GENERALE")) throw new MembershipError("Seuls l'administrateur et la Secrétaire générale donnent un accès en ligne.");
+  return v;
+}
+
+export async function giveAccessAction(memberId: string, _p: FormState, f: FormData): Promise<FormState> {
+  let email = "";
+  try {
+    const v = await accessGuard();
+    email = await giveOnlineAccess(memberId, String(f.get("email") ?? ""));
+    await audit(v.member.id, "membre.acces_en_ligne", memberId, { email });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, `Accès en ligne créé : un e-mail a été envoyé à ${email} pour choisir le mot de passe (lien valable 72 heures).`);
+}
+
+export async function resendAccessAction(memberId: string, _p: FormState): Promise<FormState> {
+  let email = "";
+  try {
+    const v = await accessGuard();
+    email = await resendInvitation(memberId);
+    await audit(v.member.id, "membre.acces_relance", memberId, { email });
+  } catch (e) { return membershipFail(e); }
+  memberPage(memberId, `Lien renvoyé à ${email} (valable 72 heures).`);
 }

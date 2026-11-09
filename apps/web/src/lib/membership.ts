@@ -1,6 +1,7 @@
 import "server-only";
 import { and, db, eq, gte, isNull, or, schema, type Tx } from "@pride/db";
 import { CA_ROLES, DUREE_MANDAT_BUREAU, DUREE_MANDAT_CA, exclusionAdopted, ASSIGNABLE_ROLES, mandateEnd, POSTES_UNIQUES, type MandateRole } from "@pride/shared";
+import { createCredentialUser, sendInvitation } from "./applications";
 import { env } from "./env";
 import { sendMail } from "./mail";
 import { formatDate, formatDateTime } from "./utils";
@@ -125,4 +126,34 @@ export async function endLeaderMandate(memberId: string, mandateId: string, acto
   }
   await db.update(schema.mandates).set({ endsAt: new Date(today.getTime() - DAY) }).where(eq(schema.mandates.id, mandateId));
   return m;
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Accès en ligne d'une fiche sans compte (par exemple les dirigeants créés par le script de départ, ou un membre
+ * agréé sans e-mail) : compte de connexion, puis e-mail pour choisir son mot de passe (lien valable 72 heures).
+ */
+export async function giveOnlineAccess(memberId: string, rawEmail: string) {
+  const email = rawEmail.trim().toLowerCase();
+  if (!EMAIL.test(email)) throw new MembershipError("Adresse e-mail invalide.");
+  const m = await db.query.members.findFirst({ where: eq(schema.members.id, memberId) });
+  if (!m || m.status !== "ACTIF" || m.technical) throw new MembershipError("Seul un membre actif peut recevoir un accès en ligne.");
+  if (m.userId) throw new MembershipError("Ce membre a déjà un accès en ligne : renvoyez-lui plutôt le lien.");
+  if (await db.query.user.findFirst({ where: eq(schema.user.email, email) })) throw new MembershipError("Cette adresse est déjà utilisée par un autre compte.");
+  await db.transaction(async (tx) => {
+    const userId = await createCredentialUser(tx, `${m.firstNames} ${m.lastName}`, email);
+    await tx.update(schema.members).set({ userId, email }).where(eq(schema.members.id, memberId));
+  });
+  await sendInvitation(email);
+  return email;
+}
+
+/** Renvoie l'e-mail « choisissez votre mot de passe » à l'adresse du compte (lien expiré, mot de passe oublié…). */
+export async function resendInvitation(memberId: string) {
+  const m = await db.query.members.findFirst({ where: eq(schema.members.id, memberId), with: { user: true } });
+  if (!m?.user) throw new MembershipError("Ce membre n'a pas encore d'accès en ligne.");
+  if (m.status !== "ACTIF") throw new MembershipError("L'espace membre de ce membre est fermé.");
+  await sendInvitation(m.user.email);
+  return m.user.email;
 }
