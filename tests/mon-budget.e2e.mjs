@@ -1,7 +1,8 @@
 // « Mon budget » (Apprendre › Mes pratiques) : revenus, dépenses, reste, parts par catégorie, objectif d'épargne,
 // suppression, mois précédent, données visibles du membre seul.
-// Prérequis : base avec « pnpm db:seed » et l'application lancée. Peut être relancé : le budget (fictif) du compte
-// membre@pride.local est remis à zéro au début.
+// Prérequis : base avec « pnpm db:seed » et l'application lancée. Peut être relancé : le test travaille sur un mois
+// réservé (janvier 2020, et décembre 2019 pour « mois précédent ») du compte membre@pride.local, efface seulement ces
+// lignes-là et remet ensuite l'objectif d'épargne tel qu'il était : le budget de démonstration n'est pas touché.
 //   node tests/mon-budget.e2e.mjs
 import { chromium } from "playwright";
 import pg from "pg";
@@ -26,10 +27,14 @@ async function login(email) {
   return page;
 }
 
+// Mois réservé au test (et le précédent, qui doit rester vide).
+const MONTH = "2020-01";
+const clearTestMonths = (memberId) => db.query("delete from personal_budget_entries where member_id = $1 and day >= '2019-12-01' and day < '2020-02-01'", [memberId]);
+const { rows: [{ id: fanja }] } = await db.query(`select m.id from members m join "user" u on u.id = m.user_id where u.email = 'membre@pride.local'`);
+const savedGoal = (await db.query("select monthly_saving from personal_budget_goals where member_id = $1", [fanja])).rows[0]?.monthly_saving ?? null;
+
 try {
-  const { rows: [{ id: fanja }] } = await db.query(`select m.id from members m join "user" u on u.id = m.user_id where u.email = 'membre@pride.local'`);
-  await db.query("delete from personal_budget_entries where member_id = $1", [fanja]);
-  await db.query("delete from personal_budget_goals where member_id = $1", [fanja]);
+  await clearTestMonths(fanja);
 
   const page = await login("membre@pride.local");
   await page.getByRole("link", { name: "Apprendre" }).click();
@@ -37,6 +42,8 @@ try {
   await page.getByRole("navigation", { name: "Mes pratiques" }).getByRole("link", { name: "Mon budget" }).click();
   await page.waitForURL(`${BASE}/membre/mon-budget`);
   log("menu « Apprendre » → Mes pratiques → Mon budget");
+  await page.goto(`${BASE}/membre/mon-budget?mois=${MONTH}`);
+  await page.getByText("Lignes du mois (0)").waitFor();
 
   const add = async (category, amount, label = "") => {
     const form = page.locator("form", { has: page.locator("#budget-amount") });
@@ -77,11 +84,15 @@ try {
   log("ligne supprimée, totaux recalculés ; mois précédent vide");
 
   const other = await login("admin@pride.local");
-  await other.goto(`${BASE}/membre/mon-budget`);
+  await other.goto(`${BASE}/membre/mon-budget?mois=${MONTH}`);
   await other.getByRole("heading", { name: "Mon budget" }).waitFor();
   if (await other.getByText("150 000 Ar · ").count()) fail("un autre compte voit le budget du membre");
   log("un autre compte, même administrateur, ne voit pas ce budget");
 } finally {
+  // Le compte de démonstration retrouve son budget d'avant le test.
+  await clearTestMonths(fanja);
+  if (savedGoal === null) await db.query("delete from personal_budget_goals where member_id = $1", [fanja]);
+  else await db.query("insert into personal_budget_goals (member_id, monthly_saving) values ($1, $2) on conflict (member_id) do update set monthly_saving = $2", [fanja, savedGoal]);
   await db.end();
   await browser.close();
 }
