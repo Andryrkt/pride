@@ -19,7 +19,7 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     tips: [
       "Il n'est pas possible de créer un compte soi-même : il faut d'abord déposer sa candidature dans « Devenir membre ».",
       "Vous n'avez pas donné d'e-mail lors de votre candidature ? Contactez le Secrétariat général pour qu'il ajoute votre adresse.",
-      "Sur un ordinateur partagé, décochez « Rester connecté » et pensez à cliquer sur « Déconnexion ».",
+      "Sur un ordinateur partagé, décochez « Rester connecté » et pensez à vous déconnecter : cliquez sur votre nom en haut à droite, puis « Déconnexion ».",
     ],
   },
   {
@@ -64,7 +64,7 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     title: "Mettre à jour son profil et ses compétences",
     summary: "Téléphone, quartier, profession et compétences : gardez-les à jour pour être joignable et trouver de l'aide.",
     steps: [
-      { text: "Ouvrez « Mon profil ». Modifiez votre téléphone, votre quartier ou ville, votre profession ou vos études.", image: "profil-1.png" },
+      { text: "Cliquez sur votre nom en haut à droite, puis « Mon profil ». Modifiez votre téléphone, votre quartier ou ville, votre profession ou vos études.", image: "profil-1.png" },
       { text: "Dans « Compétences partagées », écrivez ce que vous savez faire, séparé par des virgules. Ex. : Excel, anglais, couture." },
       { text: "Cochez « Apparaître dans l'annuaire des compétences » si vous acceptez que les autres membres vous trouvent et vous demandent un coup de main." },
       { text: "Cliquez sur « Enregistrer »." },

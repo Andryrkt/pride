@@ -27,7 +27,6 @@ export default async function MemberLayout({ children }: { children: React.React
         { href: "/membre/competences", label: "Compétences et commissions" },
         { href: "/membre/ag", label: "Assemblée générale" },
         { href: "/membre/messages", label: "Messagerie", badge: convs.filter(unreadForMember).length },
-        { href: "/membre/profil", label: "Mon profil" },
       ]}
       extra={[
         ...(v.isDirigeant ? [{ href: "/dirigeants", label: "Espace dirigeants" }] : []),
