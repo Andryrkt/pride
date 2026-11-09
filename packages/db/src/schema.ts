@@ -131,6 +131,9 @@ export const members = pgTable(
     sectionId: text("section_id").references(() => sections.id),
     /** Photo d'identité de la carte (JPEG 600 × 800, sans métadonnées). */
     photoKey: text("photo_key"),
+    /** Guides de démarrage masqués par le membre (tableau de bord membre / dirigeant). */
+    onboardingMemberDoneAt: timestamp("onboarding_member_done_at", { withTimezone: true }),
+    onboardingLeaderDoneAt: timestamp("onboarding_leader_done_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

@@ -2,6 +2,7 @@ import { and, asc, count, db, eq, gte, inArray, isNull, or, schema, sql, sum } f
 import { formatAriary, periodOf, ROLE_LABELS, type MandateRole } from "@pride/shared";
 import { PageTitle } from "@/components/site/app-shell";
 import { ButtonLink, buttonVariants } from "@/components/ui/button";
+import { LeaderOnboarding } from "@/components/site/onboarding";
 import { Card } from "@/components/ui/card";
 import { env } from "@/lib/env";
 import { requireDirigeant } from "@/lib/session";
@@ -40,6 +41,7 @@ export default async function DirigeantsHome() {
   return (
     <>
       <PageTitle title="Tableau de bord" sub={`${v.member.firstNames} ${v.member.lastName} · ${roles.map((r) => ROLE_LABELS[r]).join(", ")}`} />
+      {!v.member.onboardingLeaderDoneAt && <LeaderOnboarding isAdmin={v.isAdmin} />}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map(([t, val, s]) => (
           <Card key={t}>

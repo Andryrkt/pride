@@ -366,3 +366,17 @@ export async function deleteBudgetEntryAction(entryId: string, _p: FormState): P
 export async function setSavingGoalAction(_p: FormState, f: FormData): Promise<FormState> {
   return budgetAction((id) => setSavingGoal(id, String(f.get("goal") ?? "")), "Objectif d'épargne enregistré.");
 }
+
+// ---------------------------------------------------------------------------
+// Guides de démarrage
+// ---------------------------------------------------------------------------
+
+export async function dismissOnboardingAction(kind: "MEMBRE" | "DIRIGEANT", _prev: FormState): Promise<FormState> {
+  const v = await requireMember();
+  await db
+    .update(schema.members)
+    .set(kind === "MEMBRE" ? { onboardingMemberDoneAt: new Date() } : { onboardingLeaderDoneAt: new Date() })
+    .where(eq(schema.members.id, v.member.id));
+  revalidatePath(kind === "MEMBRE" ? "/membre" : "/dirigeants");
+  return { ok: true };
+}

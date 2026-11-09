@@ -13,6 +13,7 @@ import { dueLabel, ensureDues, listDues } from "@/lib/dues";
 import { requireMember } from "@/lib/session";
 import { SOLIDARITY_STATUS } from "@/lib/solidarity";
 import { formatDate, formatDateTime, newPostsSince } from "@/lib/utils";
+import { MemberOnboarding } from "@/components/site/onboarding";
 import { CardDownload } from "./card-download";
 import { SolidarityCard } from "./solidarity-card";
 
@@ -60,6 +61,7 @@ export default async function MemberDashboard() {
         title={`Bonjour ${member.firstNames.split(" ")[0]}`}
         sub={[`${category} depuis ${monthYear.format(new Date(member.joinedAt))}`, member.address].filter(Boolean).join(" · ")}
       />
+      {!member.onboardingMemberDoneAt && !member.technical && <MemberOnboarding member={member} duesUpToDate={unpaid.length === 0} />}
       <div className="flex flex-wrap gap-5">
         <div className="flex w-full flex-col items-center gap-3 sm:w-75 sm:shrink-0">
           {/* Carte verticale, aux proportions de la carte imprimée (54 × 85,6 mm) */}
