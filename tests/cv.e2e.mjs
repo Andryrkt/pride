@@ -1,4 +1,4 @@
-// « Mon CV » : lien depuis le profil, saisie (titre, expérience, formation, langue), enregistrement, PDF téléchargé.
+// « Mon CV » : lien depuis le profil, modification sur l'aperçu du CV (titre, expérience, formation, langue), enregistrement, PDF téléchargé.
 // Prérequis : base avec « pnpm db:seed » et l'application lancée. Remplace le CV de membre@pride.local. Peut être relancé.
 //   node tests/cv.e2e.mjs
 import { chromium } from "playwright";
@@ -28,7 +28,7 @@ try {
     while (await page.getByRole("button", { name: `Retirer ${what}` }).count()) await page.getByRole("button", { name: `Retirer ${what}` }).first().click();
   }
   await page.getByLabel("Titre du CV").fill(`Assistant comptable ${run}`);
-  await page.getByLabel("Profil", { exact: false }).first().fill("Rigoureux et curieux (CV fictif de test).");
+  await page.getByLabel("Profil", { exact: true }).fill("Rigoureux et curieux (CV fictif de test).");
   await page.getByRole("button", { name: "Ajouter une expérience" }).click();
   await page.getByLabel("Poste ou mission").fill("Trésorier adjoint (fictif)");
   await page.getByLabel("Organisme").fill("Commission sociale PRIDe");
