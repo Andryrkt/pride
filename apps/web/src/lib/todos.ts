@@ -37,7 +37,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 86_400_000);
 
-  const [applications, assemblies, exclusions, convs, [{ aids }], [{ offers }], [{ ideas }], [{ joins }], expenses, drafts, treasurer, pieces] = await Promise.all([
+  const [applications, assemblies, exclusions, convs, [{ aids }], [{ offers }], [{ ideas }], [{ bugs }], [{ joins }], expenses, drafts, treasurer, pieces] = await Promise.all([
     db.select({ status: schema.applications.status, n: count() }).from(schema.applications).where(inArray(schema.applications.status, ["SOUMISE", "ENTRETIEN", "VOTE_CA", "AGREEE"])).groupBy(schema.applications.status),
     db.query.assemblies.findMany({ where: or(inArray(schema.assemblies.status, ["PREPARATION", "CONVOQUEE", "EN_SEANCE"]), and(eq(schema.assemblies.status, "CLOTUREE"), gte(schema.assemblies.closedAt, monthAgo))) }),
     db.query.exclusionProcedures.findMany({ where: eq(schema.exclusionProcedures.status, "OUVERTE"), with: { member: true } }),
@@ -45,6 +45,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
     db.select({ aids: count() }).from(schema.solidarityRequests).where(eq(schema.solidarityRequests.status, "DEMANDEE")),
     db.select({ offers: count() }).from(schema.offers).where(eq(schema.offers.status, "PROPOSEE")),
     db.select({ ideas: count() }).from(schema.proposals).where(eq(schema.proposals.status, "RECUE")),
+    db.select({ bugs: count() }).from(schema.tickets).where(eq(schema.tickets.status, "NOUVEAU")),
     db.select({ joins: count() }).from(schema.commissionRequests).where(eq(schema.commissionRequests.status, "DEMANDEE")),
     db.select({ status: schema.expenses.status, n: count() }).from(schema.expenses).where(inArray(schema.expenses.status, ["A_SIGNER", "A_VISER", "A_PAYER"])).groupBy(schema.expenses.status),
     db.query.budgets.findMany({ where: eq(schema.budgets.status, "BROUILLON") }),
@@ -108,6 +109,7 @@ export async function leaderTodos(v: NonNullable<Viewer>): Promise<Todo[]> {
   // Tous les dirigeants du CA et du bureau
   add((v.isCA || v.isBureau) && aids, { title: `${plural(aids, "demande", "demandes")} d'aide de solidarité`, ref: "50 000 Ar au membre, 25 000 Ar à la famille", href: "/dirigeants/solidarite", cta: "Décider" });
   add(offers, { title: `${plural(offers, "offre", "offres")} de membre à valider`, ref: "Stages, emplois, bénévolat", href: "/dirigeants/offres", cta: "Valider" });
+  add(v.isAdmin && bugs, { title: `${plural(bugs, "nouveau ticket", "nouveaux tickets")} (bugs et améliorations)`, ref: "Signalés par les utilisateurs du site", href: "/dirigeants/tickets", cta: "Traiter" });
   add(ideas, { title: `${plural(ideas, "proposition", "propositions")} de membre à étudier`, ref: "Ateliers et idées de projet", href: "/dirigeants/propositions", cta: "Répondre" });
 
   return todos.filter((t, i) => todos.findIndex((o) => o.title === t.title) === i);

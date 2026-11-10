@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Banknote, BookOpen, BookUser, Briefcase, CircleUser, Clock, FileCheck, FileText, GraduationCap, HandHeart, Landmark,
+  Banknote, BookOpen, Bug, BookUser, Briefcase, CircleUser, Clock, FileCheck, FileText, GraduationCap, HandHeart, Landmark,
   LayoutDashboard, Library, Lightbulb, type LucideIcon, Megaphone, MessagesSquare, MonitorSmartphone, Newspaper, PiggyBank, SearchCheck, Smartphone,
   Target, UserCheck, Users, Vote, Wallet,
 } from "lucide-react";
@@ -33,6 +33,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/dirigeants/documents": FileText,
   "/dirigeants/messages": MessagesSquare,
   "/dirigeants/connexions": MonitorSmartphone,
+  "/dirigeants/tickets": Bug,
   "/finances": Landmark,
   "/finances/verifier": SearchCheck,
   "/finances/depenses": FileCheck,

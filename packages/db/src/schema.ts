@@ -636,6 +636,34 @@ export const memberCvs = pgTable("member_cvs", {
   updatedAt: updatedAt(),
 });
 
+export const ticketKind = pgEnum("ticket_kind", ["BUG", "AMELIORATION"]);
+export const ticketStatus = pgEnum("ticket_status", ["NOUVEAU", "EN_COURS", "RESOLU", "REFUSE"]);
+
+/** « Signaler un problème » : bug ou idée d'amélioration du site, traité par l'administrateur (T-0001, T-0002…). */
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: id(),
+    number: serial("number").notNull().unique(),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id),
+    kind: ticketKind("kind").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    /** Page où était la personne et navigateur utilisé : notés automatiquement pour reproduire un bug. */
+    page: text("page"),
+    userAgent: text("user_agent"),
+    screenshotKey: text("screenshot_key"),
+    status: ticketStatus("status").notNull().default("NOUVEAU"),
+    adminNote: text("admin_note"),
+    handledBy: text("handled_by"),
+    handledAt: timestamp("handled_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("tickets_status_idx").on(t.status), index("tickets_member_idx").on(t.memberId)],
+);
+
 export const proposalKind = pgEnum("proposal_kind", ["ATELIER", "PROJET"]);
 export const proposalStatus = pgEnum("proposal_status", ["RECUE", "RETENUE", "NON_RETENUE"]);
 
@@ -1060,6 +1088,10 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
 export const offersRelations = relations(offers, ({ one, many }) => ({
   author: one(members, { fields: [offers.authorId], references: [members.id] }),
   interests: many(offerInterests),
+}));
+
+export const ticketsRelations = relations(tickets, ({ one }) => ({
+  member: one(members, { fields: [tickets.memberId], references: [members.id] }),
 }));
 
 export const proposalsRelations = relations(proposals, ({ one }) => ({

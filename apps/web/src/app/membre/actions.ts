@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, count, db, eq, schema } from "@pride/db";
-import { cvSchema, MAX_UPLOAD_BYTES, MESSAGE_RECIPIENTS, type MessageRecipient, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
+import { cvSchema, MAX_UPLOAD_BYTES, ticketSchema, MESSAGE_RECIPIENTS, type MessageRecipient, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
 import { declarePayment, PaymentError } from "@/lib/dues";
 import { audit, requireMember } from "@/lib/session";
 import { archiveResource, canPublishResources, publishResource, ResourceError, updateResource } from "@/lib/resources";
@@ -16,6 +16,8 @@ import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import { addEntry, deleteEntry, PersonalBudgetError, setSavingGoal } from "@/lib/personal-budget";
 import type { FormState } from "@/lib/utils";
 import { saveCv } from "@/lib/cv";
+import { createTicket, ticketRef, TicketError } from "@/lib/tickets";
+import { headers } from "next/headers";
 
 export async function declarePaymentAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const v = await requireMember();
@@ -400,4 +402,32 @@ export async function saveCvAction(_prev: FormState, formData: FormData): Promis
   await saveCv(v.member.id, parsed.data);
   revalidatePath("/membre/cv");
   return { ok: true, message: "CV enregistré. Vous pouvez le télécharger en PDF." };
+}
+
+// ---------------------------------------------------------------------------
+// Signaler un problème (tickets)
+// ---------------------------------------------------------------------------
+
+export async function createTicketAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  const data = Object.fromEntries(["kind", "title", "description", "page"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const parsed = ticketSchema.safeParse(data);
+  const errors: Record<string, string> = {};
+  if (!parsed.success) for (const i of parsed.error.issues) errors[String(i.path[0])] ??= i.message;
+  const file = formData.get("screenshot");
+  const hasFile = file instanceof File && file.size > 0;
+  if (hasFile && !PHOTO_TYPES.includes(file.type)) errors.screenshot = "Format accepté : JPG, PNG ou WEBP";
+  else if (hasFile && file.size > MAX_UPLOAD_BYTES) errors.screenshot = "Image trop lourde (5 Mo maximum)";
+  if (!parsed.success || errors.screenshot) return { ok: false, message: "Vérifiez les champs indiqués.", errors, data };
+  let ref: string;
+  try {
+    const t = await createTicket(v.member, parsed.data, (await headers()).get("user-agent"), hasFile ? file : undefined);
+    ref = ticketRef(t.number);
+  } catch (e) {
+    if (e instanceof TicketError) return { ok: false, message: e.message, errors: { screenshot: e.message }, data };
+    throw e;
+  }
+  revalidatePath("/membre/signaler");
+  revalidatePath("/dirigeants", "layout");
+  return { ok: true, message: `Merci ! Signalement ${ref} envoyé à l'administrateur. Vous recevrez un e-mail quand il sera traité.` };
 }

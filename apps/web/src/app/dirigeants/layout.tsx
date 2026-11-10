@@ -8,11 +8,12 @@ export const dynamic = "force-dynamic";
 
 export default async function DirigeantsLayout({ children }: { children: React.ReactNode }) {
   const v = await requireDirigeant();
-  const [[{ n }], [{ aids }], [{ offers }], [{ ideas }], [{ joins }], convs] = await Promise.all([
+  const [[{ n }], [{ aids }], [{ offers }], [{ ideas }], [{ bugs }], [{ joins }], convs] = await Promise.all([
     db.select({ n: count() }).from(schema.applications).where(inArray(schema.applications.status, ["SOUMISE", "ENTRETIEN", "VOTE_CA", "AGREEE"])),
     db.select({ aids: count() }).from(schema.solidarityRequests).where(eq(schema.solidarityRequests.status, "DEMANDEE")),
     db.select({ offers: count() }).from(schema.offers).where(eq(schema.offers.status, "PROPOSEE")),
     db.select({ ideas: count() }).from(schema.proposals).where(eq(schema.proposals.status, "RECUE")),
+    db.select({ bugs: count() }).from(schema.tickets).where(eq(schema.tickets.status, "NOUVEAU")),
     db.select({ joins: count() }).from(schema.commissionRequests).where(eq(schema.commissionRequests.status, "DEMANDEE")),
     db.query.conversations.findMany({ where: and(ne(schema.conversations.recipient, "ASSISTANT"), eq(schema.conversations.lastSender, "MEMBRE")) }),
   ]);
@@ -35,7 +36,7 @@ export default async function DirigeantsLayout({ children }: { children: React.R
         { href: "/dirigeants/ag", label: "Assemblées générales" },
         { href: "/dirigeants/documents", label: "Documents officiels" },
         { href: "/dirigeants/actualites", label: "Actualités et événements" },
-        ...(v.isAdmin ? [{ href: "/dirigeants/connexions", label: "Utilisation du site" }] : []),
+        ...(v.isAdmin ? [{ href: "/dirigeants/connexions", label: "Utilisation du site" }, { href: "/dirigeants/tickets", label: "Tickets", badge: bugs }] : []),
       ]}
       extra={[{ href: "/finances", label: "Finances" }, { href: "/membre", label: "Mon espace membre" }]}
     >

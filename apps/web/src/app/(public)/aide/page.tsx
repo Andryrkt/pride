@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, CircleHelp, ShieldCheck, UserPlus } from "lucide-react";
+import { Bug, BookOpen, CircleHelp, ShieldCheck, UserPlus } from "lucide-react";
 import { PageHero } from "@/components/site/page-hero";
 import { GUIDES } from "@/content/guides";
 import { getViewer } from "@/lib/session";
@@ -38,6 +38,15 @@ export default async function HelpHome() {
             <span className="text-muted">Adhésion, connexion, cotisations, carte, données personnelles : les réponses courtes.</span>
           </span>
         </Link>
+        {viewer?.member && (
+          <Link href="/membre/signaler?page=/aide" className="flex gap-4 rounded-2xl border border-line bg-white p-6 hover:border-brand-600">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-flame-50 text-flame-800"><Bug size={24} aria-hidden /></span>
+            <span className="flex flex-col gap-1">
+              <strong className="text-xl">Signaler un problème</strong>
+              <span className="text-muted">Un bug, ou une idée pour améliorer le site ? Prévenez l&apos;administrateur.</span>
+            </span>
+          </Link>
+        )}
       </section>
     </>
   );

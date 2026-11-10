@@ -107,6 +107,18 @@ export const GUIDE_DIRIGEANTS: GuidePage[] = [
     links: [{ label: "Utilisation du site", href: "/dirigeants/connexions" }],
   },
   {
+    slug: "tickets",
+    title: "Traiter les tickets (bugs et améliorations)",
+    summary: "Les utilisateurs signalent les bugs et proposent des améliorations ; l'administrateur seul les traite.",
+    steps: [
+      { text: "Ouvrez « Tickets » dans le menu (pastille = nouveaux tickets ; un e-mail arrive aussi pour chacun). Filtrez par état (À traiter, Traités) ou par type (Bugs, Améliorations)." },
+      { text: "Chaque ticket indique l'auteur, la page concernée, le navigateur et, s'il y en a une, la capture d'écran (cliquez pour l'agrandir)." },
+      { text: "« Prendre en charge » passe le ticket « En cours ». « Résolu » (message facultatif) ou « Refuser » (explication obligatoire) le clôt. L'auteur reçoit un e-mail à chaque étape." },
+      { text: "« Copier pour GitHub » copie le titre et le détail, prêts à coller dans un ticket du dépôt pour l'équipe de développement." },
+    ],
+    links: [{ label: "Tickets", href: "/dirigeants/tickets" }],
+  },
+  {
     slug: "assemblee-generale",
     title: "Préparer et tenir une assemblée générale",
     summary: "Statuts, art. 18 : convocation 15 jours avant, quorum de la majorité absolue des membres ayant droit de vote, pas de procuration.",

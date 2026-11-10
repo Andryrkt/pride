@@ -138,3 +138,13 @@ export const cvSchema = z.object({
   showPhoto: z.boolean().default(true),
 });
 export type Cv = z.infer<typeof cvSchema>;
+
+/** « Signaler un problème » (bug ou amélioration du site). */
+export const TICKET_KINDS = { BUG: "Bug : quelque chose ne marche pas", AMELIORATION: "Amélioration : une idée pour le site" } as const;
+export const ticketSchema = z.object({
+  kind: z.enum(["BUG", "AMELIORATION"], { errorMap: () => ({ message: "Type : champ obligatoire" }) }),
+  title: short("Titre", 140),
+  description: required("Description").max(4000, "Description : 4 000 caractères au maximum"),
+  // Seule une adresse interne au site (« /membre/... ») est gardée : le champ caché peut être modifié par le navigateur.
+  page: z.string().trim().max(300).default("").transform((p) => (p.startsWith("/") && !p.startsWith("//") && !p.includes("\\") ? p : "")),
+});

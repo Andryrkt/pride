@@ -10,6 +10,7 @@ import { appointLeader, decideExclusion, endLeaderMandate, giveOnlineAccess, Mem
 import { MessagingError, staffReply } from "@/lib/messaging";
 import { closeOffer, decideCommissionRequest, decideOffer, decideProposal, NetworkError } from "@/lib/network";
 import { decideSolidarity, SolidarityError } from "@/lib/solidarity";
+import { updateTicket, type TicketStatus } from "@/lib/tickets";
 import { slugify, type FormState } from "@/lib/utils";
 
 async function guard() {
@@ -420,4 +421,18 @@ export async function revokeSessionsAction(target: { sessionId: string } | { use
   } catch (e) { return fail(e); }
   revalidatePath("/dirigeants/connexions");
   redirect(`/dirigeants/connexions?ok=${encodeURIComponent(n > 1 ? `${n} sessions fermées : l'utilisateur est déconnecté partout.` : "Session fermée : l'utilisateur est déconnecté.")}`);
+}
+
+/** Tickets « Signaler un problème » : l'administrateur seul les traite. */
+export async function updateTicketAction(id: string, status: Exclude<TicketStatus, "NOUVEAU">, _p: FormState, f: FormData): Promise<FormState> {
+  const note = String(f.get("note") ?? "").trim();
+  try {
+    const v = await requireDirigeant();
+    if (!v.isAdmin) throw new Error("Seul l'administrateur traite les tickets.");
+    const t = await updateTicket(id, status, note, v.member.id);
+    await audit(v.member.id, `ticket.${status.toLowerCase()}`, id, { number: t.number, note });
+  } catch (e) { return fail(e); }
+  revalidatePath("/dirigeants", "layout");
+  const done = { EN_COURS: "Ticket pris en charge", RESOLU: "Ticket résolu", REFUSE: "Ticket refusé" }[status];
+  redirect(`/dirigeants/tickets?ok=${encodeURIComponent(`${done} : l'auteur est prévenu par e-mail.`)}`);
 }

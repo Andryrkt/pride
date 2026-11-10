@@ -2,12 +2,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { ChevronDown, CircleUser, LogOut } from "lucide-react";
+import { Bug, ChevronDown, CircleUser, LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 /**
- * Menu de l'en-tête (photo ou initiales) : « Mon profil » et « Déconnexion ».
+ * Menu de l'en-tête (photo ou initiales) : « Mon profil », « Signaler un problème » (avec la page en cours) et « Déconnexion ».
  * S'ouvre au survol (souris) ou au focus (clavier, toucher sur téléphone) ; se ferme en sortant, avec Échap ou au changement de page.
  */
 export function UserMenu({ dark, userName, initials, photo }: { dark?: boolean; userName: string; initials: string; photo?: string | null }) {
@@ -38,6 +38,10 @@ export function UserMenu({ dark, userName, initials, photo }: { dark?: boolean; 
           <Link href="/membre/profil" role="menuitem" className={item}>
             <CircleUser className="size-5 shrink-0" aria-hidden />
             Mon profil
+          </Link>
+          <Link href={`/membre/signaler?page=${encodeURIComponent(path)}`} role="menuitem" className={item}>
+            <Bug className="size-5 shrink-0" aria-hidden />
+            Signaler un problème
           </Link>
           <button
             type="button"

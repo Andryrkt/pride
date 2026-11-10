@@ -93,6 +93,18 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     links: [{ label: "Mon CV", href: "/membre/cv" }],
   },
   {
+    slug: "signaler",
+    title: "Signaler un problème ou proposer une amélioration",
+    summary: "Un bouton ne marche pas, une page est confuse, une idée pour le site ? Prévenez l'administrateur en deux minutes.",
+    steps: [
+      { text: "Depuis la page où se trouve le problème, cliquez sur votre nom en haut à droite, puis « Signaler un problème ». La page est notée automatiquement." },
+      { text: "Choisissez « Bug » ou « Amélioration », écrivez un titre court et décrivez ce que vous avez fait et ce qui s'est passé." },
+      { text: "Ajoutez si possible une capture d'écran (sans mot de passe visible), puis « Envoyer le signalement »." },
+      { text: "Dans « Mes signalements », suivez l'état : Nouveau, En cours, Résolu ou Refusé. Vous recevez aussi un e-mail avec la réponse." },
+    ],
+    links: [{ label: "Signaler un problème", href: "/membre/signaler" }],
+  },
+  {
     slug: "formations",
     title: "S'inscrire à une formation ou à un événement",
     summary: "Les formations sont animées par les membres eux-mêmes ; les places sont parfois limitées.",
