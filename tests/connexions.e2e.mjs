@@ -1,4 +1,4 @@
-// Page « Connexions » (administrateur seul) : le membre connecté apparaît « en ligne », l'administrateur le déconnecte,
+// Page « Utilisation du site » (administrateur seul) : chiffres du jour, le membre connecté apparaît « en ligne », l'administrateur le déconnecte,
 // le membre revient à la page de connexion ; page refusée à la Secrétaire générale.
 // Prérequis : base avec « pnpm db:seed » et l'application lancée. Peut être relancé.
 //   node tests/connexions.e2e.mjs
@@ -33,6 +33,11 @@ try {
   await admin.getByRole("button", { name: "Se connecter" }).click();
   await admin.waitForURL(`${BASE}/membre`);
   await admin.goto(`${BASE}/dirigeants/connexions`);
+  // Tableau de bord : au moins le membre et l'administrateur ont utilisé le site aujourd'hui.
+  const today = Number(await admin.locator("div.rounded-2xl", { hasText: "utilisateurs différents" }).filter({ hasText: "Aujourd'hui" }).locator(".font-display").innerText());
+  if (!(today >= 2)) fail(`« Aujourd'hui » : ${today} au lieu d'au moins 2`);
+  await admin.getByText("Utilisateurs par jour").waitFor();
+  log(`tableau de bord d'utilisation : ${today} utilisateur(s) aujourd'hui`);
   const row = admin.locator("li", { hasText: "membre@pride.local" }).filter({ hasText: "Chrome sur Android" }).first();
   await row.getByText("En ligne").waitFor();
   log("membre connecté visible « en ligne », avec son appareil");

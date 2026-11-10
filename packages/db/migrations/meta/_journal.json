@@ -176,6 +176,13 @@
       "when": 1794232288373,
       "tag": "0024_cv",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794288457249,
+      "tag": "0025_activite",
+      "breakpoints": true
     }
   ]
 }

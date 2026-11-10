@@ -129,7 +129,7 @@ try {
   await admin.goto(`${BASE}/dirigeants/propositions`);
   const box = admin.locator("div.rounded-2xl", { hasText: idea }).last();
   await box.getByLabel("Message au membre (facultatif)").fill("La commission vous appelle (test).");
-  await box.getByRole("button", { name: "Retenir" }).click();
+  await box.getByRole("button", { name: "Retenir", exact: true }).click();
   await admin.getByText("Réponse enregistrée").waitFor();
   await admin.locator("li", { hasText: idea }).getByText("Retenue").waitFor();
   await member.goto(`${BASE}/membre/formations`);

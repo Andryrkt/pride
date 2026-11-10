@@ -56,6 +56,18 @@ export const session = pgTable("session", {
     .references(() => user.id, { onDelete: "cascade" }),
 });
 
+/** Jours où un compte a utilisé le site (connexion, puis au plus une fois toutes les 5 min) : statistiques d'utilisation de l'administrateur. */
+export const activityDays = pgTable(
+  "activity_days",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] }), index("activity_days_day_idx").on(t.day)],
+);
+
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
   accountId: text("account_id").notNull(),

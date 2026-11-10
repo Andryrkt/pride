@@ -3,10 +3,14 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, db, eq, gte, isNull, lte, or, schema } from "@pride/db";
-import { BUREAU_ROLES, CA_ROLES, DIRIGEANT_ROLES, type MandateRole } from "@pride/shared";
+import { BUREAU_ROLES, CA_ROLES, DIRIGEANT_ROLES, localDay, type MandateRole } from "@pride/shared";
 import { auth } from "./auth";
 
 export type Viewer = Awaited<ReturnType<typeof loadViewer>>;
+
+/** Jour d'utilisation du site (statistiques de l'administrateur) ; une seule ligne par compte et par jour. */
+export const recordActivity = (userId: string) =>
+  db.insert(schema.activityDays).values({ userId, day: localDay() }).onConflictDoNothing();
 
 /** Précision de la « dernière activité » d'une session. */
 export const ACTIVITY_STEP = 5 * 60_000;
@@ -16,7 +20,10 @@ async function loadViewer(reqHeaders: Headers) {
   if (!session) return null;
   // Dernière activité (page Connexions de l'administrateur) : au plus une écriture toutes les 5 minutes par session.
   if (Date.now() - new Date(session.session.updatedAt).getTime() > ACTIVITY_STEP) {
-    await db.update(schema.session).set({ updatedAt: new Date() }).where(eq(schema.session.id, session.session.id)).catch(() => {});
+    await Promise.all([
+      db.update(schema.session).set({ updatedAt: new Date() }).where(eq(schema.session.id, session.session.id)),
+      recordActivity(session.user.id),
+    ]).catch(() => {});
   }
   const member = await db.query.members.findFirst({ where: eq(schema.members.userId, session.user.id) });
   const today = new Date();

@@ -4,6 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { expo } from "@better-auth/expo";
 import { db, schema } from "@pride/db";
+import { localDay } from "@pride/shared";
 import { sendMail } from "./mail";
 import { env } from "./env";
 
@@ -29,6 +30,16 @@ export const auth = betterAuth({
     },
   },
   session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
+  // Chaque connexion compte comme un jour d'utilisation (statistiques de l'administrateur) ; un échec ne bloque pas la connexion.
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (s) => {
+          await db.insert(schema.activityDays).values({ userId: s.userId, day: localDay() }).onConflictDoNothing().catch(() => {});
+        },
+      },
+    },
+  },
   trustedOrigins: [env.appUrl, "pride://", "exp://"],
   // Cookies « __Secure- » seulement en https : le navigateur les refuse en http (essai sur une adresse sslip.io).
   advanced: { useSecureCookies: env.appUrl.startsWith("https://") },
