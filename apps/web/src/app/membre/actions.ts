@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, count, db, eq, schema } from "@pride/db";
-import { MAX_UPLOAD_BYTES, MESSAGE_RECIPIENTS, type MessageRecipient, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
+import { cvSchema, MAX_UPLOAD_BYTES, MESSAGE_RECIPIENTS, type MessageRecipient, offerSchema, paymentRequestSchema, profileSchema, proposalSchema, solidarityRequestSchema } from "@pride/shared";
 import { declarePayment, PaymentError } from "@/lib/dues";
 import { audit, requireMember } from "@/lib/session";
 import { archiveResource, canPublishResources, publishResource, ResourceError, updateResource } from "@/lib/resources";
@@ -15,6 +15,7 @@ import { addGoal, addHabit, closeGoal, DisciplineError, saveReview, stopHabit, t
 import { PhotoError, setMemberPhoto } from "@/lib/photo";
 import { addEntry, deleteEntry, PersonalBudgetError, setSavingGoal } from "@/lib/personal-budget";
 import type { FormState } from "@/lib/utils";
+import { saveCv } from "@/lib/cv";
 
 export async function declarePaymentAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const v = await requireMember();
@@ -379,4 +380,24 @@ export async function dismissOnboardingAction(kind: "MEMBRE" | "DIRIGEANT", _pre
     .where(eq(schema.members.id, v.member.id));
   revalidatePath(kind === "MEMBRE" ? "/membre" : "/dirigeants");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Mon CV
+// ---------------------------------------------------------------------------
+
+/** Le formulaire envoie le CV en JSON (lignes répétables) ; erreurs rendues par chemin, ex. « experiences.0.role ». */
+export async function saveCvAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const v = await requireMember();
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get("cv") ?? "")); } catch { return { ok: false, message: "Formulaire illisible : rechargez la page." }; }
+  const parsed = cvSchema.safeParse(raw);
+  if (!parsed.success) {
+    const errors: Record<string, string> = {};
+    for (const i of parsed.error.issues) errors[i.path.join(".")] ??= i.message;
+    return { ok: false, message: "Vérifiez les champs indiqués en rouge.", errors };
+  }
+  await saveCv(v.member.id, parsed.data);
+  revalidatePath("/membre/cv");
+  return { ok: true, message: "CV enregistré. Vous pouvez le télécharger en PDF." };
 }

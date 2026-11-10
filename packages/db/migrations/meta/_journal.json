@@ -169,6 +169,13 @@
       "when": 1794230771521,
       "tag": "0023_premiers_pas",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794232288373,
+      "tag": "0024_cv",
+      "breakpoints": true
     }
   ]
 }

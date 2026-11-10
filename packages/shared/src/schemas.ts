@@ -119,3 +119,22 @@ export const profileSchema = z.object({
   skills: z.array(z.string().trim().min(1).max(40)).max(15),
   shareSkills: z.boolean(),
 });
+
+/** Niveaux de langue proposés dans le CV. */
+export const CV_LANGUAGE_LEVELS = ["Langue maternelle", "Courant", "Intermédiaire", "Notions"] as const;
+const short = (label: string, max = 120) => required(label).max(max, `${label} : ${max} caractères au maximum`);
+const optional = (max: number) => z.string().trim().max(max, `${max} caractères au maximum`).default("");
+
+/** CV du membre (« Mon CV ») : contact et compétences viennent de sa fiche ; seul le reste est saisi ici. */
+export const cvSchema = z.object({
+  title: short("Titre du CV", 100),
+  summary: optional(800),
+  experiences: z
+    .array(z.object({ role: short("Poste ou mission"), org: short("Organisme"), period: short("Période", 60), description: optional(600) }))
+    .max(10, "10 expériences au maximum"),
+  education: z.array(z.object({ diploma: short("Diplôme ou formation"), school: short("Établissement"), year: short("Année", 30) })).max(8, "8 formations au maximum"),
+  languages: z.array(z.object({ name: short("Langue", 40), level: z.enum(CV_LANGUAGE_LEVELS) })).max(6, "6 langues au maximum"),
+  interests: optional(300),
+  showPhoto: z.boolean().default(true),
+});
+export type Cv = z.infer<typeof cvSchema>;

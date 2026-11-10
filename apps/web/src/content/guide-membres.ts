@@ -76,6 +76,23 @@ export const GUIDE_MEMBRES: GuidePage[] = [
     links: [{ label: "Mon profil", href: "/membre/profil" }],
   },
   {
+    slug: "cv",
+    title: "Créer mon CV",
+    summary: "Remplissez votre parcours une fois, téléchargez un CV propre en PDF pour vos candidatures.",
+    steps: [
+      { text: "Ouvrez « Mon profil », puis « Créer ou modifier mon CV »." },
+      { text: "Écrivez le titre du CV (le poste ou le domaine visé) et, si vous voulez, un court profil : qui vous êtes, ce que vous savez faire, ce que vous cherchez." },
+      { text: "« Ajouter une expérience » pour chaque emploi, stage ou bénévolat (une mission dans une commission PRIDe compte aussi), puis « Ajouter une formation » pour vos diplômes. Vérifiez vos langues." },
+      { text: "Cliquez sur « Enregistrer mon CV », puis sur « Télécharger en PDF »." },
+    ],
+    tips: [
+      "Votre nom, téléphone, e-mail, quartier, photo et compétences viennent de votre profil : mettez-les à jour là-bas.",
+      "Décochez « Mettre ma photo sur le CV » si l'employeur ne la demande pas.",
+      "Votre CV n'est visible que de vous : ni les dirigeants ni les autres membres ne le voient.",
+    ],
+    links: [{ label: "Mon CV", href: "/membre/cv" }],
+  },
+  {
     slug: "formations",
     title: "S'inscrire à une formation ou à un événement",
     summary: "Les formations sont animées par les membres eux-mêmes ; les places sont parfois limitées.",

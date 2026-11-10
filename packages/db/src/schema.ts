@@ -615,6 +615,15 @@ export const offers = pgTable(
   (t) => [index("offers_status_idx").on(t.status)],
 );
 
+/** CV du membre (« Mon CV ») : données saisies (titre, profil, expériences, formations, langues…), visibles de lui seul. */
+export const memberCvs = pgTable("member_cvs", {
+  memberId: text("member_id")
+    .primaryKey()
+    .references(() => members.id, { onDelete: "cascade" }),
+  data: jsonb("data").notNull(),
+  updatedAt: updatedAt(),
+});
+
 export const proposalKind = pgEnum("proposal_kind", ["ATELIER", "PROJET"]);
 export const proposalStatus = pgEnum("proposal_status", ["RECUE", "RETENUE", "NON_RETENUE"]);
 

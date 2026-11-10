@@ -9,7 +9,7 @@ import {
 } from "./pv-text";
 import { formatDate } from "./utils";
 // Les polices standard du PDF ne connaissent que l'alphabet latin (WinAnsi) : les autres caractères deviennent « ? ».
-const latin = (s: string) =>
+export const latin = (s: string) =>
   s.replace(/\r/g, "").replace(/\t/g, " ").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\n\x20-\x7E -ÿ–—…•€Œœ]/g, "?");
 
 /** Procès-verbal de l'AG en PDF (A4) : mêmes phrases que le PV à l'écran (`pv-text.ts`), seule la mise en page diffère. */
